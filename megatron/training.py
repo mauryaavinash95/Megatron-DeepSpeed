@@ -679,7 +679,7 @@ def train_step(forward_step_func, data_iterator,
     """Single training step."""
     args = get_args()
     timers = get_timers()
-    print_rank_0(f"In train_step in training.py!!!!!... {args.deepspeed}, {args.ds_pipeline_enabled}")
+    print_rank_0("In train_step in training.py...")
     if args.deepspeed and args.ds_pipeline_enabled:
         num_zeros_in_grad = 0
         assert isinstance(model[0], deepspeed.PipelineEngine)
