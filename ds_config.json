@@ -1,0 +1,42 @@
+{
+	"train_batch_size": 16,
+	"train_micro_batch_size_per_gpu": 16,
+	"steps_per_print": 1,
+	"zero_optimization": {
+		"stage": 1,
+		"overlap_comm": true
+	},
+	"bf16": {
+		"enabled": true
+	},
+	"data_types": {
+		"grad_accum_dtype": "fp32"
+ 	},
+	"wall_clock_breakdown": true,
+	"memory_breakdown": true,
+	"comms_logger": {
+		"enabled": true,
+		"verbose": true,
+		"prof_all": true,
+		"debug": true
+	},
+	"flops_profiler": {
+		"enabled": true,
+		"profile_step": 1,
+		"module_depth": -1,
+		"top_modules": 1,
+		"detailed": true,
+		"output_file": null
+	},
+    "veloc_config": {
+        "gpu_cache": 0,
+        "host_cache": 4
+    },
+	"aio": {
+		"block_size": 1048576,
+		"queue_depth": 8,
+		"thread_count": 1,
+		"single_submit": false,
+		"overlap_events": true
+	}	
+}

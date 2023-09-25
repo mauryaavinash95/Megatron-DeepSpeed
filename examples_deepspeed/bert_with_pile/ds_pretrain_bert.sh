@@ -5,8 +5,8 @@ dir=`pwd`
 ### The main configs are from Megatron-LM paper
 ### https://arxiv.org/abs/1909.08053. Choose based on your desired model size
 ### or build your own configs.
-seq_len=512
-global_batch_size=1024
+seq_len=256
+global_batch_size=64
 lr=1e-4
 min_lr=1e-5
 
@@ -23,18 +23,18 @@ min_lr=1e-5
 
 ## BERT 110M (same config as original BERT-Base model)
 ## This config is not included in Megatron-LM paper
-# model_size=0.11
-# num_layers=12
-# hidden_size=768
-# num_attn_heads=12
-# init_std=0.02
+model_size=0.11
+num_layers=12
+hidden_size=768
+num_attn_heads=12
+init_std=0.02
 
 ## BERT 336M (same config as original BERT-Large model)
-model_size=0.336
-num_layers=24
-hidden_size=1024
-num_attn_heads=16
-init_std=0.02
+# model_size=0.336
+# num_layers=24
+# hidden_size=1024
+# num_attn_heads=16
+# init_std=0.02
 
 ## BERT 1.3B
 # model_size=1.3
@@ -53,14 +53,14 @@ init_std=0.02
 ### Training duration configs
 ## The main termination condition, original Megatron paper trains for 2M iters.
 train_iters_in_million=2
-train_iters=$((${train_iters_in_million} * 1000000))
+train_iters=$((${train_iters_in_million} * 10))
 ###############################################################################
 ### lr configs
 ## lr warmup and decay duration. Original Megatron paper uses 10000 warmup
 ## iters. Decay iters is the same as train iters.
-lr_warmup_iters=10000
+lr_warmup_iters=1
 lr_decay_iters_in_million=${train_iters_in_million}
-lr_decay_iters=$((${lr_decay_iters_in_million} * 1000000))
+lr_decay_iters=$((${lr_decay_iters_in_million} * 2))
 lr_decay_style="linear"
 ###############################################################################
 ### Parallelism configs
@@ -75,11 +75,12 @@ pp_size=1
 no_pp="true"
 
 ## ZeRO stage
-zero_stage=0
+zero_stage=1
 
 ## Total number of GPUs. ds_ssh is from DeepSpeed library.
 num_gpus=$(($(ds_ssh nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)-2))
 num_gpus_pernode=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
+num_gpus=$num_gpus_pernode
 num_node=$(( ${num_gpus} / ${num_gpus_pernode} ))
 ## Data parallel size.
 dp_size=$(( ${num_gpus} / ${pp_size} / ${mp_size} ))
@@ -97,12 +98,12 @@ eval_interval=1000
 # num_save controls how frequent to save checkpoint. num_save=20 means that a
 # checkpoint will be saved every 5% of training. For longer training you would
 # want larger num_save to save more frequently, and vice versa.
-num_save=100
+num_save=1
 save_interval=$((${train_iters} / ${num_save}))
 
 ## Activation checkpointing saves GPU memory, but reduces training speed
-# activation_checkpoint="true"
-activation_checkpoint="false"
+activation_checkpoint="true"
+# activation_checkpoint="false"
 
 ## Whether or not log optimizer states (norms, max abs values) to tensorboard.
 ## This is not required for training and might save GPU memory when turned off.
@@ -116,7 +117,7 @@ host="${HOSTNAME}"
 ## about how to download and preprocess the data.
 jobname="bert-pile"
 ## For internal use. Change data_home to your own training data path.
-data_home="/vc_data_blob/users/conglli/the_pile_bert"
+data_home="/grand/projects/VeloC/am6429/the_pile_bert/"
 if [[ "$host" == *"webxt"* ]]; then
     data_home="/blob/data/the_pile_bert"
 fi
@@ -142,7 +143,7 @@ if [ "${no_pp}" = "true" ]; then
 fi
 
 username=$(whoami)
-output_home="/vc_data_blob/users/${username}/project/bert_with_pile"
+output_home="/home/am6429/dl-io/output/bert_with_pile"
 if [[ "$host" == *"webxt"* ]]; then
     output_home="/blob/users/${username}/project/bert_with_pile"
 fi
@@ -150,7 +151,7 @@ log_path="${output_home}/log/"
 checkpoint_path="${output_home}/checkpoint/${jobname}"
 ## Microsoft internal constraint: because tensorboard is logged by last rank,
 ## it's better to put the path in NFS instead of Blob.
-tensorboard_dir="/vc_data/users/${username}/project/bert_with_pile/tensorboard/"
+tensorboard_dir="/home/am6429/dl-io/output/bert_with_pile/bert_with_pile/tensorboard/"
 tensorboard_path="${tensorboard_dir}${jobname}_${host}_${current_time}"
 mkdir -p ${log_path}
 mkdir -p ${checkpoint_path}
@@ -160,11 +161,45 @@ data_options=" \
     --vocab-file ${vocab_path} \
     --data-path ${data_path} \
     --data-impl mmap"
-
+: '
 megatron_options=" \
     --override-opt_param-scheduler \
     --adam-beta1 0.9 \
     --adam-beta2 0.999 \
+    --init-method-std ${init_std} \
+    --tensor-model-parallel-size ${mp_size} \
+    --lr-decay-iters ${lr_decay_iters} \
+    --lr-warmup-iters ${lr_warmup_iters} \
+    --micro-batch-size ${batch_size} \
+    --global-batch-size ${global_batch_size} \
+    --num-layers ${num_layers} \
+    --hidden-size ${hidden_size} \
+    --num-attention-heads ${num_attn_heads} \
+    --seq-length ${seq_len} \
+    --max-position-embeddings ${seq_len} \
+    --train-iters ${train_iters} \
+    --lr ${lr} \
+    --min-lr ${min_lr} \
+    --lr-decay-style ${lr_decay_style} \
+    --split 949,50,1 \
+    --log-interval ${log_interval} \
+    --eval-interval ${eval_interval} \
+    --eval-iters ${eval_iters} \
+    --save-interval ${save_interval} \
+    --weight-decay 1e-2 \
+    --clip-grad 1.0 \
+    --num-workers ${num_workers} \
+    --fp16 \
+    --load ${checkpoint_path} \
+    --save ${checkpoint_path} \
+    --tensorboard-queue-size 1 \
+    --log-timers-to-tensorboard \
+    --log-batch-size-to-tensorboard \
+    --log-validation-ppl-to-tensorboard \
+    --tensorboard-dir ${tensorboard_path}"
+'
+
+megatron_options=" \
     --init-method-std ${init_std} \
     --tensor-model-parallel-size ${mp_size} \
     --lr-decay-iters ${lr_decay_iters} \

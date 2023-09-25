@@ -1,28 +1,49 @@
 {
-  "train_batch_size" : CONFIG_BATCH_SIZE,
-  "train_micro_batch_size_per_gpu": CONFIG_MBSIZE,
-  "steps_per_print": LOG_INTERVAL,
+	"train_batch_size": CONFIG_BATCH_SIZE,
+	"train_micro_batch_size_per_gpu": CONFIG_MBSIZE,
+	"steps_per_print": LOG_INTERVAL,
+	"zero_optimization": {
+		"stage": ZERO_STAGE,
+		"elastic_checkpoint": true,
+		"overlap_comm": true,
+		"contiguous_gradients": true
+	},
+	"offload_optimizer": {
+		"device": "cpu",
+		"pin_memory": true,
+		"buffer_count": 4,
+		"fast_init": false
+	},
+	"offload_param": {
+		"device": "cpu",
+		"pin_memory": true,
+		"buffer_count": 5,
+		"buffer_size": 1e8,
+		"max_in_cpu": 1e9
+	},
+	"activation_checkpointing": {
+		"partition_activations": false,
+		"cpu_checkpointing": true,
+		"contiguous_memory_optimization": true,
+		"synchronize_checkpoint_boundary": false,
+		"profile": true
+	},
 
-  "zero_optimization": {
-    "stage": ZERO_STAGE,
-    "elastic_checkpoint": true
-  },
+	"gradient_clipping": 1.0,
+	"prescale_gradients": PRESCALE_GRAD,
 
-  "gradient_clipping": 1.0,
-  "prescale_gradients": PRESCALE_GRAD,
+	"fp16": {
+		"enabled": CONFIG_FP16_ENABLED,
+		"loss_scale": 0,
+		"loss_scale_window": 500,
+		"hysteresis": 2,
+		"min_loss_scale": 1,
+		"initial_scale_power": 11
+	},
 
-  "fp16": {
-    "enabled": CONFIG_FP16_ENABLED,
-    "loss_scale": 0,
-    "loss_scale_window": 500,
-    "hysteresis": 2,
-    "min_loss_scale": 1,
-    "initial_scale_power": 11
-  },
+	"bf16": {
+		"enabled": CONFIG_BF16_ENABLED
+	},
 
-  "bf16": {
-    "enabled": CONFIG_BF16_ENABLED
-  },
-
-  "wall_clock_breakdown" : false
+	"wall_clock_breakdown": false
 }

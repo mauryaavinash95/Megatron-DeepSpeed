@@ -1,0 +1,153 @@
+nohup: ignoring input
+[2023-09-23 15:01:37,367] [INFO] [real_accelerator.py:158:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+/home/am6429/.conda/envs/dspeed_env/lib/python3.10/site-packages/torch/cuda/__init__.py:107: UserWarning: CUDA initialization: CUDA driver initialization failed, you might not have a CUDA gpu. (Triggered internally at /opt/conda/conda-bld/pytorch_1682343995026/work/c10/cuda/CUDAFunctions.cpp:109.)
+  return torch._C._cuda_getDeviceCount() > 0
+No CUDA runtime is found, using CUDA_HOME='/soft/compilers/cudatoolkit/cuda-11.8.0'
+[2023-09-23 15:01:45,121] [INFO] [real_accelerator.py:158:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+/home/am6429/.conda/envs/dspeed_env/lib/python3.10/site-packages/torch/cuda/__init__.py:107: UserWarning: CUDA initialization: CUDA driver initialization failed, you might not have a CUDA gpu. (Triggered internally at /opt/conda/conda-bld/pytorch_1682343995026/work/c10/cuda/CUDAFunctions.cpp:109.)
+  return torch._C._cuda_getDeviceCount() > 0
+No CUDA runtime is found, using CUDA_HOME='/soft/compilers/cudatoolkit/cuda-11.8.0'
+Opening /grand/projects/VeloC/am6429/the_pile_bert/06_ss.jsonl
+Processed 1000 documents (13.48182291004936 docs/s, 0.10609964330819993 MB/s).
+Processed 2000 documents (26.4359102091927 docs/s, 0.1735951658061096 MB/s).
+Processed 3000 documents (38.746946697383684 docs/s, 0.24820418824812993 MB/s).
+Processed 4000 documents (50.2002494995382 docs/s, 0.3397051940706875 MB/s).
+Processed 5000 documents (30.59954533801244 docs/s, 0.22001691056073164 MB/s).
+Processed 6000 documents (36.347364086421614 docs/s, 0.25246702670836596 MB/s).
+Processed 7000 documents (41.85285791315042 docs/s, 0.2961274704427276 MB/s).
+Processed 8000 documents (47.4030077252049 docs/s, 0.3264948068924668 MB/s).
+Processed 9000 documents (52.70037013093179 docs/s, 0.3605506246445485 MB/s).
+Processed 10000 documents (58.02165314348527 docs/s, 0.390685874507068 MB/s).
+Processed 11000 documents (63.25926569087137 docs/s, 0.4143550140038012 MB/s).
+Processed 12000 documents (68.3027953138901 docs/s, 0.44947139513222634 MB/s).
+Processed 13000 documents (73.31796787671917 docs/s, 0.4771950731928058 MB/s).
+Processed 14000 documents (78.04873971818836 docs/s, 0.51118647758632 MB/s).
+Processed 15000 documents (82.7154263274327 docs/s, 0.5439635026511436 MB/s).
+Processed 16000 documents (87.30431024239685 docs/s, 0.5763451571978897 MB/s).
+Processed 17000 documents (68.7931799669333 docs/s, 0.4571238815988601 MB/s).
+Processed 18000 documents (72.35496699170884 docs/s, 0.4758803378597497 MB/s).
+Processed 19000 documents (75.71861471012102 docs/s, 0.5020626496716354 MB/s).
+Processed 20000 documents (79.1549167729438 docs/s, 0.5232976171842222 MB/s).
+Processed 21000 documents (82.63849467365137 docs/s, 0.5397804986289707 MB/s).
+Processed 22000 documents (85.90505480383054 docs/s, 0.5658214668687144 MB/s).
+Processed 23000 documents (89.24346805620368 docs/s, 0.5833200483571621 MB/s).
+Processed 24000 documents (92.4984761384217 docs/s, 0.6022787086919166 MB/s).
+Processed 25000 documents (95.83991671640514 docs/s, 0.6171865828931553 MB/s).
+Processed 26000 documents (82.31482536010378 docs/s, 0.5495879468779691 MB/s).
+Processed 27000 documents (85.04499629097904 docs/s, 0.5633989941514276 MB/s).
+Processed 28000 documents (87.78302801231442 docs/s, 0.5773192772678111 MB/s).
+Processed 29000 documents (88.76120410855003 docs/s, 0.5841944122690218 MB/s).
+Processed 30000 documents (91.2776997484485 docs/s, 0.6021044832734403 MB/s).
+Processed 31000 documents (93.79874403874705 docs/s, 0.618022910470694 MB/s).
+Processed 32000 documents (96.25816850841476 docs/s, 0.6384438112360538 MB/s).
+Processed 33000 documents (98.72983010158165 docs/s, 0.653328360435943 MB/s).
+Processed 34000 documents (98.12952415023892 docs/s, 0.6491223318199798 MB/s).
+Processed 35000 documents (98.56129172200714 docs/s, 0.6528369963637722 MB/s).
+Processed 36000 documents (100.9133762324757 docs/s, 0.6642385021575892 MB/s).
+Processed 37000 documents (103.23825303377112 docs/s, 0.6755178057119813 MB/s).
+Processed 38000 documents (105.50718119902184 docs/s, 0.6907691896680027 MB/s).
+Processed 39000 documents (107.8246432634278 docs/s, 0.70135225245445 MB/s).
+Processed 40000 documents (110.17720486450585 docs/s, 0.7121678116146383 MB/s).
+Processed 41000 documents (99.51050616313549 docs/s, 0.6468812392578617 MB/s).
+Processed 42000 documents (101.26788291052112 docs/s, 0.6644221721671306 MB/s).
+Processed 43000 documents (103.27515177620435 docs/s, 0.6753731017722746 MB/s).
+Processed 44000 documents (102.94126270779114 docs/s, 0.6730100598050597 MB/s).
+Processed 45000 documents (96.58419891596365 docs/s, 0.6291938935041261 MB/s).
+Processed 46000 documents (98.3283989363714 docs/s, 0.6429073301940299 MB/s).
+Processed 47000 documents (100.08587479595923 docs/s, 0.652573379408897 MB/s).
+Processed 48000 documents (101.85533176321927 docs/s, 0.6635091400925505 MB/s).
+Processed 49000 documents (103.61827123503596 docs/s, 0.6729379647808376 MB/s).
+Processed 50000 documents (105.37439332741288 docs/s, 0.6812356387297468 MB/s).
+Processed 51000 documents (105.94062529995676 docs/s, 0.686533039261035 MB/s).
+Processed 52000 documents (106.02103997712611 docs/s, 0.6845535926064114 MB/s).
+Processed 53000 documents (107.69950493804002 docs/s, 0.6932697910870088 MB/s).
+Processed 54000 documents (108.25244648791632 docs/s, 0.6957828515736705 MB/s).
+Processed 55000 documents (108.50462301245733 docs/s, 0.696349075415923 MB/s).
+Processed 56000 documents (108.08147970833708 docs/s, 0.6945202466230258 MB/s).
+Processed 57000 documents (109.04214104007431 docs/s, 0.7014765835923149 MB/s).
+Processed 58000 documents (110.15339207030318 docs/s, 0.7068462458954707 MB/s).
+Processed 59000 documents (111.71988208449709 docs/s, 0.7147480885914136 MB/s).
+Processed 60000 documents (109.57502712683396 docs/s, 0.699074541684429 MB/s).
+Processed 61000 documents (111.01108753138821 docs/s, 0.7068029379900123 MB/s).
+Processed 62000 documents (112.46206892892444 docs/s, 0.7145878210219637 MB/s).
+Processed 63000 documents (107.29562631661878 docs/s, 0.6845564998596972 MB/s).
+Processed 64000 documents (108.71180700020037 docs/s, 0.6919553487763631 MB/s).
+Processed 65000 documents (110.0952674696935 docs/s, 0.6999648964869981 MB/s).
+Processed 66000 documents (110.2545454670588 docs/s, 0.7013862094676853 MB/s).
+Processed 67000 documents (111.6657259808418 docs/s, 0.7081336115071917 MB/s).
+Processed 68000 documents (105.65101570605451 docs/s, 0.6722934171684755 MB/s).
+Processed 69000 documents (106.99775791122222 docs/s, 0.6782884041142981 MB/s).
+Processed 70000 documents (108.1477244562642 docs/s, 0.6880022165413057 MB/s).
+Processed 71000 documents (108.702279716589 docs/s, 0.6915360240355007 MB/s).
+Processed 72000 documents (109.94376705346134 docs/s, 0.6990934576936156 MB/s).
+Processed 73000 documents (111.2101863907801 docs/s, 0.7050550104435661 MB/s).
+Processed 74000 documents (108.78269446201092 docs/s, 0.6907503027216112 MB/s).
+Processed 75000 documents (93.13002915999394 docs/s, 0.5984699187108644 MB/s).
+Processed 76000 documents (94.21644885738789 docs/s, 0.6033224966881149 MB/s).
+Processed 77000 documents (95.26110527870274 docs/s, 0.6082831656455193 MB/s).
+Processed 78000 documents (86.09791485749504 docs/s, 0.555641096208388 MB/s).
+Processed 79000 documents (86.98653782019515 docs/s, 0.5647794963881204 MB/s).
+Processed 80000 documents (87.93732746005614 docs/s, 0.5696288749267977 MB/s).
+Processed 81000 documents (88.86136944888004 docs/s, 0.5748868269998705 MB/s).
+Processed 82000 documents (89.80939996322748 docs/s, 0.5799958761821575 MB/s).
+Processed 83000 documents (90.72867397951657 docs/s, 0.585623177683753 MB/s).
+Processed 84000 documents (91.63048761920449 docs/s, 0.5922688920140456 MB/s).
+Processed 85000 documents (92.56826696271652 docs/s, 0.5971639441473917 MB/s).
+Processed 86000 documents (93.47544625735785 docs/s, 0.602486598253807 MB/s).
+Processed 87000 documents (94.37332066045174 docs/s, 0.6080579100616774 MB/s).
+Processed 88000 documents (95.3307847814934 docs/s, 0.6124373613962767 MB/s).
+Processed 89000 documents (96.23163599835112 docs/s, 0.6172661997125404 MB/s).
+Processed 90000 documents (97.17021337023758 docs/s, 0.6214836711066359 MB/s).
+Processed 91000 documents (98.04715454432586 docs/s, 0.627359162640877 MB/s).
+Processed 92000 documents (98.9581503571163 docs/s, 0.6328955039356609 MB/s).
+Processed 93000 documents (99.85228788423123 docs/s, 0.6379930063636374 MB/s).
+Processed 94000 documents (100.74292087256623 docs/s, 0.6428735803109319 MB/s).
+Processed 95000 documents (101.63665618549584 docs/s, 0.6478001874492215 MB/s).
+Processed 96000 documents (102.40173291995079 docs/s, 0.6530626487090639 MB/s).
+Processed 97000 documents (103.22379840738647 docs/s, 0.6598380747897874 MB/s).
+Processed 98000 documents (104.05765984573848 docs/s, 0.6667155461789834 MB/s).
+Processed 99000 documents (104.8528111655858 docs/s, 0.6736608467236366 MB/s).
+Processed 100000 documents (105.70506706724434 docs/s, 0.6784438358571186 MB/s).
+Processed 101000 documents (98.52838201182239 docs/s, 0.6338050186181 MB/s).
+Processed 102000 documents (99.32593040024567 docs/s, 0.6385646415009124 MB/s).
+Processed 103000 documents (100.11206365937379 docs/s, 0.6433815113046535 MB/s).
+Processed 104000 documents (100.8781568907524 docs/s, 0.6492409131594505 MB/s).
+Processed 105000 documents (101.68241796992845 docs/s, 0.6532728311269147 MB/s).
+Processed 106000 documents (102.47938113532379 docs/s, 0.6580806257902022 MB/s).
+Processed 107000 documents (103.24446337102223 docs/s, 0.6633547010257886 MB/s).
+Processed 108000 documents (104.05046247418558 docs/s, 0.6687756217955991 MB/s).
+Processed 109000 documents (104.8087158927793 docs/s, 0.6738784239601032 MB/s).
+Processed 110000 documents (105.54228248222256 docs/s, 0.6791316947504457 MB/s).
+Processed 111000 documents (106.30504171453272 docs/s, 0.6847431946053016 MB/s).
+Processed 112000 documents (107.07667889109146 docs/s, 0.6900901490895114 MB/s).
+Processed 113000 documents (107.87804069751668 docs/s, 0.6940217596644794 MB/s).
+Processed 114000 documents (97.13706939913084 docs/s, 0.6277956472642521 MB/s).
+Processed 115000 documents (97.88657722809948 docs/s, 0.6312470242326865 MB/s).
+Processed 116000 documents (98.57542000990725 docs/s, 0.6358858515056574 MB/s).
+Processed 117000 documents (99.28766109702696 docs/s, 0.6398324706728484 MB/s).
+Processed 118000 documents (99.97842874262501 docs/s, 0.6439872727359421 MB/s).
+Processed 119000 documents (100.66392167279854 docs/s, 0.6478150549069513 MB/s).
+Processed 120000 documents (101.3545356357923 docs/s, 0.6519540930675495 MB/s).
+Processed 121000 documents (102.04492095855444 docs/s, 0.6566592869334563 MB/s).
+Processed 122000 documents (102.73909417233972 docs/s, 0.660951173880369 MB/s).
+Processed 123000 documents (103.35231371529443 docs/s, 0.6671399632586359 MB/s).
+Processed 124000 documents (104.07263142213269 docs/s, 0.6707153784224116 MB/s).
+Processed 125000 documents (104.78873950496117 docs/s, 0.6740437269318414 MB/s).
+Processed 126000 documents (105.47819813989146 docs/s, 0.6779421048964851 MB/s).
+Processed 127000 documents (106.17655693875582 docs/s, 0.6817702786711517 MB/s).
+Processed 128000 documents (106.84255193930979 docs/s, 0.686114166398518 MB/s).
+Processed 129000 documents (107.57116919599984 docs/s, 0.6892641212528494 MB/s).
+Processed 130000 documents (108.24664538445138 docs/s, 0.6931002753650096 MB/s).
+Processed 131000 documents (108.91397486998696 docs/s, 0.6968960005549969 MB/s).
+Processed 132000 documents (109.61682149772497 docs/s, 0.7005050041173814 MB/s).
+Processed 133000 documents (110.29744594260504 docs/s, 0.7045516096968323 MB/s).
+Processed 134000 documents (110.9414669249515 docs/s, 0.7089179398626885 MB/s).
+Processed 135000 documents (111.12457782207197 docs/s, 0.7109910494338104 MB/s).
+Processed 136000 documents (111.78428117372641 docs/s, 0.7142793560113375 MB/s).
+selected_chunk:  [6]
+json_file_path: /grand/projects/VeloC/am6429/the_pile_bert/06.jsonl
+output_prefix: /grand/projects/VeloC/am6429/the_pile_bert/pile_bert_train_06
+os_path_exists: /grand/projects/VeloC/am6429/the_pile_bert/pile_bert_train_06_text_sentence.idx
+Starting to preprocess  /grand/projects/VeloC/am6429/the_pile_bert/pile_bert_train_06
+Error: chunk 6 preprocessing got error, delete                     incomplete output. If MemoryError appeared, please retry                     with num_workers smaller than 32.
+Finished preprocessing chunk 6 in 1238.722319841385 sec

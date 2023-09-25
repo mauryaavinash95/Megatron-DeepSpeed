@@ -32,14 +32,21 @@ def pile_decompress(download_url, file_path, i):
 def pile_preprocess(download_url, file_path, vocab_file, num_workers, i):
     json_file_path = f"{file_path}{i:02}.jsonl"
     output_prefix = f"{file_path}pile_bert_train_{i:02}"
+    print(f"json_file_path: {json_file_path}")
+    print(f"output_prefix: {output_prefix}")
+    print(f"os_path_exists: {output_prefix}_text_sentence.idx")
+
     if not os.path.exists(f"{output_prefix}_text_sentence.idx"):
+        """
         if not os.path.exists(json_file_path):
             pile_decompress(download_url, file_path, i)
+        """
         start = time.time()
+        print("Starting to preprocess ", output_prefix)
         cmd = f"python ../../tools/preprocess_data.py \
                 --input {json_file_path} \
                 --output-prefix {output_prefix} \
-                --vocab {vocab_file} \
+                --vocab-file {vocab_file} \
                 --dataset-impl mmap \
                 --tokenizer-type BertWordPieceLowerCase \
                 --split-sentences \
@@ -50,7 +57,8 @@ def pile_preprocess(download_url, file_path, vocab_file, num_workers, i):
         # Our experience show that chunk 6, 7, 9, 17, 18, 20, 21, 24, 27
         # particularly have large memory usage.
         if os.system(cmd) == 0: # Success
-            os.remove(json_file_path)
+            # os.remove(json_file_path)
+            pass
         else:
             print(f"Error: chunk {i} preprocessing got error, delete \
                     incomplete output. If MemoryError appeared, please retry \
@@ -67,6 +75,7 @@ def pile_merge(file_path):
     vocab_size = 30524
     for i in range(num_chunks):
         output_prefix = f"{file_path}pile_bert_train_{i:02}"
+        print(output_prefix)
         assert os.path.exists(f"{output_prefix}_text_sentence.idx")
         assert os.path.exists(f"{output_prefix}_text_sentence.bin")
     builder = indexed_dataset.make_builder(
@@ -91,7 +100,7 @@ if __name__ == '__main__':
     # Estimated max storage usage would be around 1.6 TB (or 780GB if skip the
     # final merge). Memory usage is proportional to the num_workers below (can
     # be as high as O(300GB) if num_workers is around 20).
-    file_path = "/blob/data/the_pile_bert/"
+    file_path = "/grand/projects/VeloC/am6429/the_pile_bert/"
     # The raw Pile data has 30 compressed .zst chunks. To run on single
     # machine for all chunks, run "python prepare_pile_data.py range 0 30".
     # You can also split and run on multiple machines to speed up, since
@@ -113,7 +122,7 @@ if __name__ == '__main__':
             selected_chunk = [int(x) for x in sys.argv[1:]]
         print("selected_chunk: ", selected_chunk)
         # Number of process. Adjust based on your CPU/Memory.
-        num_workers = 20
+        num_workers = 32
         # Where the raw Pile data can be downloaded. The url may change in
         # future. Contact EleutherAI (https://github.com/EleutherAI/the-pile)
         # if this url does not work.

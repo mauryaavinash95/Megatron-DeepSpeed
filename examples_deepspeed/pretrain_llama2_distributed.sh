@@ -60,7 +60,23 @@ cat <<EOT > $DS_CONFIG
   },
   "bf16": {
     "enabled": true
-  }
+  },
+  "wall_clock_breakdown": true,
+	"memory_breakdown": true,
+	"comms_logger": {
+		"enabled": true,
+		"verbose": true,
+		"prof_all": true,
+		"debug": true
+	},
+	"flops_profiler": {
+		"enabled": true,
+		"profile_step": 1,
+		"module_depth": -1,
+		"top_modules": 1,
+		"detailed": true,
+		"output_file": null
+	}
 }
 EOT
 

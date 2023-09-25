@@ -48,6 +48,7 @@ from deepspeed.accelerator import get_accelerator
 from deepspeed.compression.compress import init_compression, redundancy_clean
 from deepspeed.runtime.data_pipeline.data_routing.helper import convert_to_random_ltd
 from megatron.model.transformer import ParallelTransformerLayer
+from deepspeed.utils import instrument_w_nvtx
 
 def print_datetime(string):
     """Note that this call will sync across all ranks."""
@@ -625,19 +626,20 @@ def setup_model_and_optimizer(model_provider_func,
     return model, optimizer, opt_param_scheduler
 
 
-
+@instrument_w_nvtx
 def train_step(forward_step_func, data_iterator,
                model, optimizer, opt_param_scheduler, config):
     """Single training step."""
     args = get_args()
     timers = get_timers()
-
+    print_rank_0("In train_step in training.py...")
     if args.deepspeed and args.ds_pipeline_enabled:
         skipped_iter = 0
         num_zeros_in_grad = 0
         assert isinstance(model[0], deepspeed.PipelineEngine)
         loss = model[0].train_batch(data_iter=data_iterator)
         grad_norm = model[0].get_global_grad_norm()
+        print("Getting out from the pipeline enabled prompt in training.py")
         return {'lm loss' : loss}, skipped_iter, grad_norm, num_zeros_in_grad
 
     # Set grad to zero.
