@@ -695,6 +695,7 @@ def train_step(forward_step_func, data_iterator,
         unwrapped_model.cancel_gradients_last_layer(args.curr_iteration)
 
     # Update parameters.
+    import pdb; pdb.set_trace()
     timers('optimizer', log_level=1).start(barrier=args.barrier_with_L1_time)
     if args.deepspeed:
         increment = get_num_microbatches() * \
