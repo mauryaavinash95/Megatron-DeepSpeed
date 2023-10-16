@@ -54,7 +54,8 @@ MICRO_BATCH=16
 GLOBAL_BATCH=$(( MICRO_BATCH * DP ))
 # MICRO_BATCH=$(( GLOBAL_BATCH / DP ))
 TRAIN_ITERS=3
-CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/gpt2/tp${TP}_pp${PP}_dp${DP} 
+CHECKPOINT_PATH=/local/scratch/tp${TP}_pp${PP}_dp${DP} 
+# CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/gpt2/tp${TP}_pp${PP}_dp${DP} 
 LOAD_CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/gpt2/tp${TP}_pp${PP}_dp${DP}
 
 LR=6.0e-4
@@ -80,7 +81,7 @@ options=" \
 	--min-lr $MIN_LR \
         --lr-decay-style cosine \
         --log-interval 1 \
-        --eval-iters $TRAIN_ITERS \
+        --eval-iters 0 \
         --eval-interval 3600 \
 	--data-path ${DATASET} \
 	--vocab-file ${VOCAB_PATH} \
@@ -158,9 +159,8 @@ cat <<EOT > $CONFIG_JSON
 		"stage": $ZERO_STAGE,
 		"overlap_comm": true
 	},
-	"fp16": {
-		"enabled": true,
-		"initial_scale_power": 12
+	"bf16": {
+		"enabled": true
 	},
 	"data_types": {
 		"grad_accum_dtype": "fp32"
@@ -197,9 +197,8 @@ cat <<EOT > $CONFIG_JSON
 		"stage": $ZERO_STAGE,
 		"overlap_comm": true
 	},
-	"fp16": {
-		"enabled": true,
-		"initial_scale_power": 12
+	"bf16": {
+		"enabled": true
 	}, 
 	"data_types": {
 		"grad_accum_dtype": "fp32"
