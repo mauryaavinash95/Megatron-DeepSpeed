@@ -6,12 +6,17 @@
 		"stage": 1,
 		"overlap_comm": true
 	},
-	"bf16": {
-		"enabled": true
+	"fp16": {
+		"enabled": true,
+		"initial_scale_power": 12
+	}, 
+	"activation_checkpointing": {
+		"partition_activations": true,
+		"cpu_checkpointing": true,
+		"contiguous_memory_optimization": true,
+		"synchronize_checkpoint_boundary": true,
+		"profile": true
 	},
-	"data_types": {
-		"grad_accum_dtype": "fp32"
- 	},
 	"wall_clock_breakdown": true,
 	"memory_breakdown": true,
 	"comms_logger": {
@@ -28,7 +33,7 @@
 		"detailed": true,
 		"output_file": null
 	},
-    "async_ckpt_config": {
-        "host_cache": 4
-    }
+	"veloc_config": {
+		"host_cache": 8
+	}
 }

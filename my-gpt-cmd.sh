@@ -6,27 +6,8 @@
 # PBS -l filesystems=home:grand
 
 set -x 
-#### module load cray-mpich/8.1.16 mpiwrappers/cray-mpich-llvm cudatoolkit-standalone/11.8.0 PrgEnv-gnu nvhpc-mixed/23.3 conda/2023-01-10-unstable
-
-### Currently Loaded Modules:
-###   1) gcc/11.2.0         4) libfabric/1.11.0.4.125   7) cray-pmi/6.1.2       10) cray-libpals/1.1.7           13) conda/2023-01-10-unstable
-###   2) craype/2.7.15      5) craype-network-ofi       8) cray-pmi-lib/6.0.17  11) PrgEnv-gnu/8.3.3             14) cudatoolkit-standalone/11.8.0
-###   3) cray-dsmml/0.2.2   6) cray-mpich/8.1.16        9) cray-pals/1.1.7      12) cray-hdf5-parallel/1.12.1.3
-module load cudatoolkit-standalone/11.8.0 conda/2023-01-10-unstable gcc/11.2.0
-unset CC
-unset F77
-unset CXX
-unset FC
-unset F90
-export CRAY_ACCEL_TARGET=nvidia80
-export MPICH_GPU_SUPPORT_ENABLED=1
-export NCCL_NET_GDR_LEVEL=PHB
-export NCCL_COLLNET_ENABLE=1
-export NVCC_PREPEND_FLAGS="--forward-unknown-opts"
-export CFLAGS="-I/soft/datascience/conda/2023-01-10/mconda3/include/"
-export LDFLAGS="-L/soft/datascience/conda/2023-01-10/mconda3/lib/"
-conda activate dspeed_env
-
+source ~/.bash_profile
+dlconda
 
 DIR=/home/am6429/dl-io/Megatron-DeepSpeed/
 cd ${DIR}
@@ -43,16 +24,6 @@ echo "PATH=${PATH}" > .deepspeed_env
 echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> .deepspeed_env
 echo "http_proxy=${http_proxy}" >> .deepspeed_env
 echo "https_proxy=${https_proxy}" >> .deepspeed_env
-echo "CC=/home/am6429/.conda/envs/dspeed_env/bin/x86_64-conda-linux-gnu-cc" >> .deepspeed_env
-echo "CXX=/home/am6429/.conda/envs/dspeed_env/bin/x86_64-conda-linux-gnu-c++" >> .deepspeed_env
-## echo "F77=''" >> .deepspeed_env
-## echo "FC=''" >> .deepspeed_env
-## echo "F90=''" >> .deepspeed_env
-## echo "CRAY_ACCEL_TARGET=nvidia80" >> .deepspeed_env
-## echo "MPICH_GPU_SUPPORT_ENABLED=1" >> .deepspeed_env
-## echo "NCCL_NET_GDR_LEVEL=PHB" >> .deepspeed_env
-## echo "NCCL_COLLNET_ENABLE=1" >> .deepspeed_env
-## echo "NVCC_PREPEND_FLAGS="--forward-unknown-opts"" >> .deepspeed_env
 echo "CFLAGS=-I/soft/datascience/conda/2023-01-10/mconda3/include/" >> .deepspeed_env
 echo "LDFLAGS=-L/soft/datascience/conda/2023-01-10/mconda3/lib/" >> .deepspeed_env
 
@@ -67,15 +38,8 @@ LAUNCH_PARAMS="--hostfile=$HOSTFILE --master_port=29700"
 USE_DEEPSPEED=1
 ZERO_STAGE=1
 
-# # Model size: 1.1B
-# HIDDEN=1536
-# ATTN_HEADS=16
-# LAYERS=24
-# SEQ=2048
-
-# Model size: 7.1B Bloom
-# HIDDEN=4096
-HIDDEN=2048
+model_size_B=3
+HIDDEN=2560
 ATTN_HEADS=32
 LAYERS=30
 SEQ=2048
@@ -147,9 +111,9 @@ options=" \
 # So switching to regular FP16.
 
 
-OPT_OFFLOAD=0
-if [[ $OPT_OFFLOAD == 0 ]]; then
-echo "Not offload optimizer to the CPU"
+CKPT_APPROACH=$1
+if [[ $CKPT_APPROACH == 0 ]]; then
+echo "Checkpointing with default Torch.save()"
 cat <<EOT > $CONFIG_JSON
 {
 	"train_batch_size": $GLOBAL_BATCH,
@@ -180,55 +144,27 @@ cat <<EOT > $CONFIG_JSON
 		"top_modules": 1,
 		"detailed": true,
 		"output_file": null
-	},
-    "veloc_config": {
-        "gpu_cache": 0,
-        "host_cache": 4
-    }
+	}
 }
 EOT
-
-else
-echo "Offloading optimizer to the CPU"
+elif [[ $CKPT_APPROACH == 1 ]]; then
+echo "Checkpointing using Python Based AysncTorch approach"
 cat <<EOT > $CONFIG_JSON
 {
 	"train_batch_size": $GLOBAL_BATCH,
 	"train_micro_batch_size_per_gpu": $MICRO_BATCH,
 	"steps_per_print": 1,
-	"optimizer": {
-		"type": "Adam",
-		"params": {
-			"lr": 0.001,
-			"betas": [
-				0.8,
-				0.999
-			],
-			"eps": 1e-8,
-			"weight_decay": 3e-7
-		}
-	},
 	"zero_optimization": {
 		"stage": $ZERO_STAGE,
-		"overlap_comm": true,
-		"contiguous_gradients": true,
-		"offload_optimizer": {
-			"device": "cpu",
-			"pin_memory": true,
-			"buffer_count": 40,
-			"fast_init": true
-		}
+		"overlap_comm": true
 	},
 	"fp16": {
 		"enabled": true,
 		"initial_scale_power": 12
-	}, 
-	"activation_checkpointing": {
-		"partition_activations": true,
-		"cpu_checkpointing": true,
-		"contiguous_memory_optimization": true,
-		"synchronize_checkpoint_boundary": true,
-		"profile": true
 	},
+	"data_types": {
+		"grad_accum_dtype": "fp32"
+ 	},
 	"wall_clock_breakdown": true,
 	"memory_breakdown": true,
 	"comms_logger": {
@@ -244,27 +180,62 @@ cat <<EOT > $CONFIG_JSON
 		"top_modules": 1,
 		"detailed": true,
 		"output_file": null
+	},
+	"async_ckpt_config": {
+		"host_cache": -1
 	}
 }
 EOT
-options="${options} \
-        --cpu-optimizer"
+elif [[ $CKPT_APPROACH == 2 ]]; then
+echo "Checkpointing using VELOC Checkpointing approach"
+cat <<EOT > $CONFIG_JSON
+{
+	"train_batch_size": $GLOBAL_BATCH,
+	"train_micro_batch_size_per_gpu": $MICRO_BATCH,
+	"steps_per_print": 1,
+	"zero_optimization": {
+		"stage": $ZERO_STAGE,
+		"overlap_comm": true
+	},
+	"fp16": {
+		"enabled": true,
+		"initial_scale_power": 12
+	}, 
+	"data_types": {
+		"grad_accum_dtype": "fp32"
+ 	},
+	"wall_clock_breakdown": true,
+	"memory_breakdown": true,
+	"comms_logger": {
+		"enabled": true,
+		"verbose": true,
+		"prof_all": true,
+		"debug": true
+	},
+	"flops_profiler": {
+		"enabled": true,
+		"profile_step": 1,
+		"module_depth": -1,
+		"top_modules": 1,
+		"detailed": true,
+		"output_file": null
+	},
+	"veloc_config": {
+		"host_cache": $2
+	}
+}
+EOT
 fi
 
-
-
-# Calculate the number of parameters
-# model_size=$((HIDDEN * HIDDEN * NUM_LAYERS * 3 + HIDDEN * FFN_HIDDEN_SIZE * NUM_LAYERS * 2 +  HIDDEN * SEQ_LENGTH * NUM_LAYERS * 2 + NUM_HEADS * HIDDEN * 3))
-# model_size_B=$(awk "BEGIN { printf \"%.1f\", $model_size / 1e9 }")
-# echo "Model size: ${model_size}, in B: ${model_size_B}"
-model_size_B=7.1
-output_dir="/home/am6429/dl-io/output/gpt-NN$NNODES-OFFLOAD$OPT_OFFLOAD/"
+output_dir="/home/am6429/dl-io/output/gpt-NN$NNODES/"
 mkdir -p "$output_dir"
-log_str="${model_size_B}B-tp$TP-pp$PP-dp$DP-l$LAYERS-h$HIDDEN-a$ATTN_HEADS-sl$SEQ-gbs$GLOBAL_BATCH-mbs-$MICRO_BATCH"
+log_str="${model_size_B}B-tp$TP-pp$PP-dp$DP-l$LAYERS-h$HIDDEN-a$ATTN_HEADS-sl$SEQ-gbs$GLOBAL_BATCH-mbs-$MICRO_BATCH-ckpt-$CKPT_APPROACH"
 echo "NSYS_REPORT_DIR=${output_dir}/rep-${log_str}-%n">> .deepspeed_env
-# run_cmd="rm -rf $CHECKPOINT_PATH && time /soft/compilers/cudatoolkit/cuda-11.8.0/bin/nsys profile --force-overwrite true -o $output_dir/report-$log_str --stats=true deepspeed ${LAUNCH_PARAMS} ${DIR}/pretrain_gpt.py $@ ${options} | tee $output_dir/log-$log_str.log"
 
-run_cmd="rm -rf $CHECKPOINT_PATH && deepspeed ${LAUNCH_PARAMS} ${DIR}/pretrain_gpt.py $@ ${options} | tee $output_dir/log-$log_str.log"
+# Remove the `@` which adds all additional params to deepspeed
+# run_cmd="rm -rf $CHECKPOINT_PATH && deepspeed ${LAUNCH_PARAMS} ${DIR}/pretrain_gpt.py $@ ${options} | tee $output_dir/log-$log_str.log"
+eval "rm -rf $CHECKPOINT_PATH"
+run_cmd="{ time deepspeed ${LAUNCH_PARAMS} ${DIR}/pretrain_gpt.py ${options}; } 2>&1 | tee $output_dir/log-$log_str.log"
 echo $run_cmd
 
 # echo ${run_cmd}
