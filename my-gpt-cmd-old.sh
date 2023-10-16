@@ -262,8 +262,8 @@ eval "rm -rf $CHECKPOINT_PATH"
 run_cmd="{ time deepspeed ${LAUNCH_PARAMS} ${DIR}/pretrain_gpt.py ${options}; } 2>&1 | tee $output_dir/log-$log_str.log"
 echo $run_cmd
 
-# echo ${run_cmd}
-eval ${run_cmd}
+echo ${run_cmd}
+# eval ${run_cmd}
 ls -ltrh "$CHECKPOINT_PATH/global_step1/" >> "$output_dir/log-$log_str.log"
 rm -rf $output_dir/*.sqlite
 set +x
