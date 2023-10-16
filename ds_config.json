@@ -27,5 +27,8 @@
 		"top_modules": 1,
 		"detailed": true,
 		"output_file": null
-	}
+	},
+    "async_ckpt_config": {
+        "host_cache": 4
+    }
 }

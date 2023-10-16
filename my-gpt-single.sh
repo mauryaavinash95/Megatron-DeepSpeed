@@ -12,21 +12,22 @@ set -x
 ###   1) gcc/11.2.0         4) libfabric/1.11.0.4.125   7) cray-pmi/6.1.2       10) cray-libpals/1.1.7           13) conda/2023-01-10-unstable
 ###   2) craype/2.7.15      5) craype-network-ofi       8) cray-pmi-lib/6.0.17  11) PrgEnv-gnu/8.3.3             14) cudatoolkit-standalone/11.8.0
 ###   3) cray-dsmml/0.2.2   6) cray-mpich/8.1.16        9) cray-pals/1.1.7      12) cray-hdf5-parallel/1.12.1.3
-module load cudatoolkit-standalone/11.8.0 conda/2023-01-10-unstable gcc/11.2.0
-unset CC
-unset F77
-unset CXX
-unset FC
-unset F90
-export CRAY_ACCEL_TARGET=nvidia80
-export MPICH_GPU_SUPPORT_ENABLED=1
-export NCCL_NET_GDR_LEVEL=PHB
-export NCCL_COLLNET_ENABLE=1
-export NVCC_PREPEND_FLAGS="--forward-unknown-opts"
-export CFLAGS="-I/soft/datascience/conda/2023-01-10/mconda3/include/"
-export LDFLAGS="-L/soft/datascience/conda/2023-01-10/mconda3/lib/"
-conda activate dspeed_env
-
+# module load cudatoolkit-standalone/11.8.0 conda/2023-01-10-unstable gcc/11.2.0
+# unset CC
+# unset F77
+# unset CXX
+# unset FC
+# unset F90
+# export CRAY_ACCEL_TARGET=nvidia80
+# export MPICH_GPU_SUPPORT_ENABLED=1
+# export NCCL_NET_GDR_LEVEL=PHB
+# export NCCL_COLLNET_ENABLE=1
+# export NVCC_PREPEND_FLAGS="--forward-unknown-opts"
+# export CFLAGS="-I/soft/datascience/conda/2023-01-10/mconda3/include/"
+# export LDFLAGS="-L/soft/datascience/conda/2023-01-10/mconda3/lib/"
+# conda activate dspeed_env
+source ~/.bash_profile
+dlconda
 
 DIR=/home/am6429/dl-io/Megatron-DeepSpeed/
 cd ${DIR}
@@ -51,6 +52,7 @@ echo "LDFLAGS=-L/soft/datascience/conda/2023-01-10/mconda3/lib/" >> .deepspeed_e
 NNODES=1
 echo "Number of nodes found as $NNODES"
 # echo 'slots=1 polaris-login-01' > $HOSTFILE
+export CUDA_VISIBLE_DEVICES=0,1
 NRANKS_PER_NODE=1
 WORLD_SIZE=$(( NNODES * NRANKS_PER_NODE ))
 
@@ -72,9 +74,10 @@ WORLD_SIZE=$((TP*PP*DP))
 MICRO_BATCH=16
 GLOBAL_BATCH=$(( MICRO_BATCH * DP ))
 # MICRO_BATCH=$(( GLOBAL_BATCH / DP ))
-TRAIN_ITERS=3
-CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/gpt2-single/tp${TP}_pp${PP}_dp${DP} 
-LOAD_CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/gpt2-single/tp${TP}_pp${PP}_dp${DP}
+TRAIN_ITERS=30
+CHECKPOINT_PATH=/local/scratch/tp${TP}_pp${PP}_dp${DP} 
+# CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/gpt2-single/tp${TP}_pp${PP}_dp${DP} 
+# LOAD_CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/gpt2-single/tp${TP}_pp${PP}_dp${DP}
 
 LR=6.0e-4
 MIN_LR=6.0e-5
@@ -245,8 +248,8 @@ echo "NSYS_REPORT_DIR=${output_dir}/rep-${log_str}-%n">> .deepspeed_env
 run_cmd="rm -rf $CHECKPOINT_PATH && deepspeed ${DIR}/pretrain_gpt.py $@ ${options} | tee $output_dir/log-$log_str.log"
 echo $run_cmd
 
-# echo ${run_cmd}
-eval ${run_cmd}
+echo ${run_cmd}
+# eval ${run_cmd}
 ls -ltrh "$CHECKPOINT_PATH/global_step1/" >> "$output_dir/log-$log_str.log"
 rm -rf $output_dir/*.sqlite
 set +x

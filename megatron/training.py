@@ -235,6 +235,7 @@ def pretrain(train_valid_test_dataset_provider,
                                    test_data_iterator, model,
                                    iteration, process_non_loss_data_func, config,
                                    verbose=True, write_to_tensorboard=not args.skip_train, test=True)
+    model[0].save_checkpoint_terminate()
     return model
 
 
@@ -704,7 +705,8 @@ def train_step(forward_step_func, data_iterator,
         unwrapped_model.cancel_gradients_last_layer(args.curr_iteration)
 
     # Update parameters.
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
+    model[0].checkpoint_engine.wait()
     timers('optimizer', log_level=1).start(barrier=args.barrier_with_L1_time)
     if args.deepspeed:
         increment = get_num_microbatches() * \
@@ -1151,6 +1153,7 @@ def train(forward_step_func, model, optimizer, opt_param_scheduler,
             args.curriculum_seqlen = args.curriculum_scheduler.update_difficulty( \
                     args.iteration + 1)
         args.curr_iteration = iteration
+        # import pdb; pdb.set_trace()
         loss_dict, skipped_iter, grad_norm, num_zeros_in_grad = \
             train_step(forward_step_func,
                        train_data_iterator,
@@ -1224,6 +1227,7 @@ def train(forward_step_func, model, optimizer, opt_param_scheduler,
                 save_checkpoint_and_time(iteration, model, optimizer,
                                          opt_param_scheduler)
                 print_datetime('exiting program after receiving SIGTERM.')
+                model[0].save_checkpoint_terminate()
                 sys.exit()
 
         if args.save and args.save_interval and \
@@ -1245,6 +1249,7 @@ def train(forward_step_func, model, optimizer, opt_param_scheduler,
                     save_checkpoint_and_time(iteration, model, optimizer,
                                              opt_param_scheduler)
                 print_datetime('exiting program after {} minutes'.format(train_time))
+                model[0].save_checkpoint_terminate()
                 sys.exit()
 
         # Exiting based on iterations
@@ -1254,6 +1259,7 @@ def train(forward_step_func, model, optimizer, opt_param_scheduler,
                                          opt_param_scheduler)
             torch.distributed.barrier()
             print_datetime('exiting program at iteration {}'.format(iteration))
+            model[0].save_checkpoint_terminate()
             sys.exit()
 
 
