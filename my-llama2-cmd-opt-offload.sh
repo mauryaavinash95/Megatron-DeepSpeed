@@ -165,8 +165,6 @@ echo "IBV_FORK_SAFE=1" >> .deepspeed_env
 echo "CFLAGS=-I/soft/datascience/conda/2023-01-10/mconda3/include/" >> .deepspeed_env
 echo "LDFLAGS=-L/soft/datascience/conda/2023-01-10/mconda3/lib/" >> .deepspeed_env
 echo "CUDA_DEVICE_MAX_CONNECTIONS=1" >> .deepspeed_env
-echo "TORCHSNAPSHOT_PER_RANK_MEMORY_BUDGET_BYTES=34359738368" >> .deepspeed_env
-# echo "CUDA_VISIBLE_DEVICES=0" >> .deepspeed_env
 
 
 echo "Number of nodes found as $NNODES"
@@ -189,9 +187,9 @@ WORLD_SIZE=$((TP*PP*DP))
 MICRO_BATCH=16
 GLOBAL_BATCH=$(( MICRO_BATCH * DP ))
 # MICRO_BATCH=$(( GLOBAL_BATCH / DP ))
-CHECKPOINT_PATH=/local/scratch/llama2/tp${TP}_pp${PP}_dp${DP} 
-# CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/llama2/tp${TP}_pp${PP}_dp${DP} 
-# LOAD_CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/llama2/tp${TP}_pp${PP}_dp${DP}
+# CHECKPOINT_PATH=/local/scratch/llama2/tp${TP}_pp${PP}_dp${DP} 
+CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/llama2/tp${TP}_pp${PP}_dp${DP} 
+LOAD_CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/llama2/tp${TP}_pp${PP}_dp${DP}
 
 LR=3e-4
 MIN_LR=3e-5
@@ -253,9 +251,10 @@ options=" \
         --deepspeed_config=${CONFIG_JSON} \
         --zero-stage=${ZERO_STAGE} \
         --deepspeed-activation-checkpointing \
+        --cpu-optimizer \
         "
 # --load ${LOAD_CHECKPOINT_PATH} \
-# --cpu-optimizer
+
 # --no-pipeline-parallel
 
 # AM comment: BP16 does not work with deepspeed for now
@@ -271,7 +270,11 @@ cat <<EOT > $CONFIG_JSON
 	"steps_per_print": 1,
 	"zero_optimization": {
 		"stage": $ZERO_STAGE,
-		"overlap_comm": true
+		"overlap_comm": true,
+    "offload_optimizer": {
+      "device": "cpu",
+      "pin_memory": true,
+    }
 	},
 	"bf16": {
 		"enabled": true
@@ -301,7 +304,11 @@ cat <<EOT > $CONFIG_JSON
 	"steps_per_print": 1,
 	"zero_optimization": {
 		"stage": $ZERO_STAGE,
-		"overlap_comm": true
+		"overlap_comm": true,
+    "offload_optimizer": {
+      "device": "cpu",
+      "pin_memory": true,
+    }
 	},
 	"bf16": {
 		"enabled": true
@@ -330,7 +337,11 @@ cat <<EOT > $CONFIG_JSON
 	"steps_per_print": 1,
 	"zero_optimization": {
 		"stage": $ZERO_STAGE,
-		"overlap_comm": true
+		"overlap_comm": true,
+    "offload_optimizer": {
+      "device": "cpu",
+      "pin_memory": true,
+    }
 	},
 	"bf16": {
 		"enabled": true
@@ -362,7 +373,11 @@ cat <<EOT > $CONFIG_JSON
 	"steps_per_print": 1,
 	"zero_optimization": {
 		"stage": $ZERO_STAGE,
-		"overlap_comm": true
+		"overlap_comm": true,
+    "offload_optimizer": {
+      "device": "cpu",
+      "pin_memory": true,
+    }
 	},
 	"bf16": {
 		"enabled": true
@@ -381,40 +396,7 @@ cat <<EOT > $CONFIG_JSON
 		"output_file": null
 	},
 	"veloc_ckpt_config": {
-		"host_cache": $HOST_CACHE,
-        "writer_threads": 1
-	}
-}
-EOT
-elif [[ $CKPT_APPROACH == 4 ]]; then
-echo "Checkpointing using TorchSnapshot Async approach"
-cat <<EOT > $CONFIG_JSON
-{
-	"train_batch_size": $GLOBAL_BATCH,
-	"train_micro_batch_size_per_gpu": $MICRO_BATCH,
-	"steps_per_print": 1,
-	"zero_optimization": {
-		"stage": $ZERO_STAGE,
-		"overlap_comm": true
-	},
-	"bf16": {
-		"enabled": true
-	},
-	"data_types": {
-		"grad_accum_dtype": "fp32"
- 	},
-	"wall_clock_breakdown": true,
-	"memory_breakdown": true,
-	"flops_profiler": {
-		"enabled": true,
-		"profile_step": 1,
-		"module_depth": -1,
-		"top_modules": 1,
-		"detailed": true,
-		"output_file": null
-	},
-	"torch_sn_async_ckpt_config": {
-		"enabled": true
+		"host_cache": $HOST_CACHE
 	}
 }
 EOT
@@ -427,7 +409,7 @@ fi
 # model_size_B=$(awk "BEGIN { printf \"%.1f\", $model_size / 1e9 }")
 # echo "Model size: ${model_size}, in B: ${model_size_B}"
 
-output_dir="/home/am6429/dl-io/dl-io-outputs/output-llama2/llama2-NN$NNODES/"
+output_dir="/home/am6429/dl-io/dl-io-outputs/output-llama2-opt-offload/llama2-NN$NNODES/"
 mkdir -p "$output_dir"
 log_str="${model_size_B}B-tp$TP-pp$PP-dp$DP-l$NUM_LAYERS-h$HIDDEN_SIZE-a$NUM_HEADS-sl$SEQ_LENGTH-gbs$GLOBAL_BATCH-mbs-$MICRO_BATCH-ckpt-$CKPT_APPROACH"
 rm -rf $output_dir/log-$log_str.log
@@ -441,5 +423,5 @@ echo $run_cmd
 eval ${run_cmd}
 ls -ltrh "$CHECKPOINT_PATH/global_step1/" >> "$output_dir/log-$log_str.log"
 rm -rf $output_dir/*.sqlite
-# eval "rm -rf $CHECKPOINT_PATH"
-# rm -rf /local/scratch/
+eval "rm -rf $CHECKPOINT_PATH"
+rm -rf /local/scratch/

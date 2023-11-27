@@ -95,6 +95,7 @@ class Timer(TimerBase):
         get_accelerator().synchronize()
         self._elapsed += (time.time() - self._start_time)
         self._started = False
+        print(f"<TIMER:{self.name},{self._elapsed}>")
 
 
     def reset(self):

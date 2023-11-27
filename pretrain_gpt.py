@@ -24,6 +24,7 @@ from deepspeed.runtime.utils import see_memory_usage
 from deepspeed.accelerator.real_accelerator import get_accelerator
 import os
 import subprocess
+import time
 
 from torch import nn
 import torch.nn.functional as F
@@ -359,9 +360,11 @@ def git_ds_info():
 
 if __name__ == "__main__":
     git_ds_info()
+    t = time.time()
     pretrain(train_valid_test_datasets_provider,
              model_provider,
              ModelType.encoder_or_decoder,
              forward_step,
              args_defaults={'tokenizer_type': 'GPT2BPETokenizer'},
              data_post_process=data_post_process)
+    print(f"<<<{time.time()-t}>>>")

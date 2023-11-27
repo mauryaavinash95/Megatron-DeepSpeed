@@ -235,7 +235,8 @@ def pretrain(train_valid_test_dataset_provider,
                                    test_data_iterator, model,
                                    iteration, process_non_loss_data_func, config,
                                    verbose=True, write_to_tensorboard=not args.skip_train, test=True)
-    model[0].save_checkpoint_terminate()
+    if isinstance(model[0], deepspeed.PipelineEngine): 
+        model[0].save_checkpoint_terminate()
     return model
 
 
@@ -642,7 +643,7 @@ def train_step(forward_step_func, data_iterator,
     """Single training step."""
     args = get_args()
     timers = get_timers()
-    print_rank_0("In train_step in training.py...")
+    print_rank_0(f"In train_step in training.py!!!!!... {args.deepspeed}, {args.ds_pipeline_enabled}")
     if args.deepspeed and args.ds_pipeline_enabled:
         skipped_iter = 0
         num_zeros_in_grad = 0
@@ -704,9 +705,12 @@ def train_step(forward_step_func, data_iterator,
                                        (torchDDP, LocalDDP, Float16Module))
         unwrapped_model.cancel_gradients_last_layer(args.curr_iteration)
 
-    # Update parameters.
-    # import pdb; pdb.set_trace()
-    model[0].checkpoint_engine.wait()
+    # Update parameters.   
+    if isinstance(model[0], deepspeed.PipelineEngine): 
+        timers('wait-checkpoint', log_level=1).start()
+        model[0].checkpoint_engine.wait()
+        timers('wait-checkpoint')
+
     timers('optimizer', log_level=1).start(barrier=args.barrier_with_L1_time)
     if args.deepspeed:
         increment = get_num_microbatches() * \
@@ -827,7 +831,9 @@ def training_log(loss_dict, total_loss_dict, learning_rate, iteration,
         'optimizer-count-zeros',
         'optimizer-inner-step',
         'optimizer-copy-main-to-model-params',
-        'optimizer']
+        'optimizer',
+        'save-checkpoint',
+        'wait-checkpoint']
 
     # Calculate batch size.
     batch_size = args.micro_batch_size * args.data_parallel_size * \
@@ -865,12 +871,12 @@ def training_log(loss_dict, total_loss_dict, learning_rate, iteration,
                               args.consumed_train_samples)
             writer.add_scalar(f"lm-loss-training/{key}" + ' vs tokens', loss_dict[key],
                               args.consumed_train_tokens)
-        if args.log_loss_scale_to_tensorboard:
-            writer.add_scalar('loss-scale/loss-scale', loss_scale, iteration)
-            writer.add_scalar('loss-scale/loss-scale vs samples', loss_scale,
-                              args.consumed_train_samples)
-            writer.add_scalar('loss-scale/loss-scale vs tokens', loss_scale,
-                              args.consumed_train_tokens)
+        # if args.log_loss_scale_to_tensorboard:
+        #     writer.add_scalar('loss-scale/loss-scale', loss_scale, iteration)
+        #     writer.add_scalar('loss-scale/loss-scale vs samples', loss_scale,
+        #                       args.consumed_train_samples)
+        #     writer.add_scalar('loss-scale/loss-scale vs tokens', loss_scale,
+        #                       args.consumed_train_tokens)
         if args.log_world_size_to_tensorboard:
             writer.add_scalar('world-size/world-size', args.world_size, iteration)
             writer.add_scalar('world-size/world-size vs samples', args.world_size,
@@ -1227,7 +1233,8 @@ def train(forward_step_func, model, optimizer, opt_param_scheduler,
                 save_checkpoint_and_time(iteration, model, optimizer,
                                          opt_param_scheduler)
                 print_datetime('exiting program after receiving SIGTERM.')
-                model[0].save_checkpoint_terminate()
+                if isinstance(model[0], deepspeed.PipelineEngine): 
+                    model[0].save_checkpoint_terminate()
                 sys.exit()
 
         if args.save and args.save_interval and \
@@ -1249,7 +1256,8 @@ def train(forward_step_func, model, optimizer, opt_param_scheduler,
                     save_checkpoint_and_time(iteration, model, optimizer,
                                              opt_param_scheduler)
                 print_datetime('exiting program after {} minutes'.format(train_time))
-                model[0].save_checkpoint_terminate()
+                if isinstance(model[0], deepspeed.PipelineEngine): 
+                    model[0].save_checkpoint_terminate()
                 sys.exit()
 
         # Exiting based on iterations
@@ -1259,7 +1267,8 @@ def train(forward_step_func, model, optimizer, opt_param_scheduler,
                                          opt_param_scheduler)
             torch.distributed.barrier()
             print_datetime('exiting program at iteration {}'.format(iteration))
-            model[0].save_checkpoint_terminate()
+            if isinstance(model[0], deepspeed.PipelineEngine): 
+                model[0].save_checkpoint_terminate()
             sys.exit()
 
 

@@ -165,8 +165,6 @@ echo "IBV_FORK_SAFE=1" >> .deepspeed_env
 echo "CFLAGS=-I/soft/datascience/conda/2023-01-10/mconda3/include/" >> .deepspeed_env
 echo "LDFLAGS=-L/soft/datascience/conda/2023-01-10/mconda3/lib/" >> .deepspeed_env
 echo "CUDA_DEVICE_MAX_CONNECTIONS=1" >> .deepspeed_env
-echo "TORCHSNAPSHOT_PER_RANK_MEMORY_BUDGET_BYTES=34359738368" >> .deepspeed_env
-# echo "CUDA_VISIBLE_DEVICES=0" >> .deepspeed_env
 
 
 echo "Number of nodes found as $NNODES"
@@ -189,9 +187,9 @@ WORLD_SIZE=$((TP*PP*DP))
 MICRO_BATCH=16
 GLOBAL_BATCH=$(( MICRO_BATCH * DP ))
 # MICRO_BATCH=$(( GLOBAL_BATCH / DP ))
-CHECKPOINT_PATH=/local/scratch/llama2/tp${TP}_pp${PP}_dp${DP} 
-# CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/llama2/tp${TP}_pp${PP}_dp${DP} 
-# LOAD_CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/llama2/tp${TP}_pp${PP}_dp${DP}
+# CHECKPOINT_PATH=/local/scratch/llama2/tp${TP}_pp${PP}_dp${DP} 
+CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/llama2/tp${TP}_pp${PP}_dp${DP} 
+LOAD_CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/llama2/tp${TP}_pp${PP}_dp${DP}
 
 LR=3e-4
 MIN_LR=3e-5
@@ -208,7 +206,6 @@ options=" \
        --pipeline-model-parallel-size $PP \
        --num-layers $NUM_LAYERS \
        --hidden-size $HIDDEN_SIZE \
-       --ffn-hidden-size $FFN_HIDDEN_SIZE \
        --num-attention-heads $NUM_HEADS \
        --micro-batch-size $MICRO_BATCH \
        --global-batch-size $GLOBAL_BATCH \
@@ -219,18 +216,13 @@ options=" \
        --data-path $DATASET \
        --vocab-file ${VOCAB_PATH} \
 	   --merge-file ${MERGE_PATH} \
-       --data-impl mmap \
-       --tokenizer-type GPTSentencePieceTokenizer \
-       --tokenizer-model $TOKENIZER_PATH \
        --split 949,50,1 \
-       --distributed-backend nccl \
        --lr $LR \
        --lr-decay-style cosine \
        --min-lr $MIN_LR \
        --weight-decay $WEIGHT_DECAY \
        --clip-grad $GRAD_CLIP \
        --lr-warmup-iters $LR_WARMUP_STEPS \
-       --optimizer adam \
        --adam-beta1 0.9 \
        --adam-beta2 0.95 \
        --log-interval 1 \
@@ -238,15 +230,6 @@ options=" \
        --eval-interval 1000 \
        --eval-iters 0 \
        --bf16 \
-       --no-query-key-layer-scaling \
-       --attention-dropout 0 \
-       --hidden-dropout 0 \
-       --use-rotary-position-embeddings \
-       --untie-embeddings-and-output-weights \
-       --swiglu \
-       --normalization rmsnorm \
-       --disable-bias-linear \
-       --num-key-value-heads $NUM_KV_HEADS \
        --checkpoint-activations \
         --exit-interval ${EXIT_INTERVAL} \
         --deepspeed \
@@ -381,40 +364,7 @@ cat <<EOT > $CONFIG_JSON
 		"output_file": null
 	},
 	"veloc_ckpt_config": {
-		"host_cache": $HOST_CACHE,
-        "writer_threads": 1
-	}
-}
-EOT
-elif [[ $CKPT_APPROACH == 4 ]]; then
-echo "Checkpointing using TorchSnapshot Async approach"
-cat <<EOT > $CONFIG_JSON
-{
-	"train_batch_size": $GLOBAL_BATCH,
-	"train_micro_batch_size_per_gpu": $MICRO_BATCH,
-	"steps_per_print": 1,
-	"zero_optimization": {
-		"stage": $ZERO_STAGE,
-		"overlap_comm": true
-	},
-	"bf16": {
-		"enabled": true
-	},
-	"data_types": {
-		"grad_accum_dtype": "fp32"
- 	},
-	"wall_clock_breakdown": true,
-	"memory_breakdown": true,
-	"flops_profiler": {
-		"enabled": true,
-		"profile_step": 1,
-		"module_depth": -1,
-		"top_modules": 1,
-		"detailed": true,
-		"output_file": null
-	},
-	"torch_sn_async_ckpt_config": {
-		"enabled": true
+		"host_cache": $HOST_CACHE
 	}
 }
 EOT
@@ -441,5 +391,5 @@ echo $run_cmd
 eval ${run_cmd}
 ls -ltrh "$CHECKPOINT_PATH/global_step1/" >> "$output_dir/log-$log_str.log"
 rm -rf $output_dir/*.sqlite
-# eval "rm -rf $CHECKPOINT_PATH"
-# rm -rf /local/scratch/
+eval "rm -rf $CHECKPOINT_PATH"
+rm -rf /local/scratch/
