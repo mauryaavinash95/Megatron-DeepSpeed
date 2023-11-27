@@ -255,15 +255,15 @@ output_dir="/home/am6429/dl-io/output/gpt-NN$NNODES/"
 mkdir -p "$output_dir"
 log_str="${model_size_B}B-tp$TP-pp$PP-dp$DP-l$LAYERS-h$HIDDEN-a$ATTN_HEADS-sl$SEQ-gbs$GLOBAL_BATCH-mbs-$MICRO_BATCH-ckpt-$CKPT_APPROACH"
 echo "NSYS_REPORT_DIR=${output_dir}/rep-${log_str}-%n">> .deepspeed_env
-
+rm -rf $output_dir/log-$log_str.log
 # Remove the `@` which adds all additional params to deepspeed
 # run_cmd="rm -rf $CHECKPOINT_PATH && deepspeed ${LAUNCH_PARAMS} ${DIR}/pretrain_gpt.py $@ ${options} | tee $output_dir/log-$log_str.log"
 eval "rm -rf $CHECKPOINT_PATH"
 run_cmd="{ time deepspeed ${LAUNCH_PARAMS} ${DIR}/pretrain_gpt.py ${options}; } 2>&1 | tee $output_dir/log-$log_str.log"
 echo $run_cmd
 
-echo ${run_cmd}
-# eval ${run_cmd}
+# echo ${run_cmd}
+eval ${run_cmd}
 ls -ltrh "$CHECKPOINT_PATH/global_step1/" >> "$output_dir/log-$log_str.log"
 rm -rf $output_dir/*.sqlite
 set +x
