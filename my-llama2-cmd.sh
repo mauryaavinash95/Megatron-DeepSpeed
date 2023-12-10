@@ -7,7 +7,7 @@
 
 source ~/.bash_profile
 dlconda
-
+# set -x
 # Define default values
 CKPT_APPROACH=0
 HOST_CACHE=0
@@ -21,8 +21,9 @@ NUM_KV_HEADS=0
 TRAIN_ITERS=0
 NNODES=$(wc -l < $PBS_NODEFILE)
 PP=$NNODES
+SAVE_INTERVAL=1
 
-while getopts ":c:h:m:H:F:N:L:U:S:K:P:" opt; do
+while getopts ":c:h:m:H:F:N:L:U:S:K:P:I:" opt; do
   case $opt in
     c)
       if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
@@ -111,6 +112,14 @@ while getopts ":c:h:m:H:F:N:L:U:S:K:P:" opt; do
         PP=$NNODES
       fi
       ;;
+    I)
+      if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
+        SAVE_INTERVAL="$OPTARG"
+      else
+        echo "Invalid SAVE_INTERVAL: $OPTARG is not a valid integer." >&2
+        exit 1
+      fi
+      ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
       exit 1
@@ -140,6 +149,7 @@ echo "SEQ_LENGTH: $SEQ_LENGTH"
 echo "NUM_KV_HEADS: $NUM_KV_HEADS"
 echo "TRAIN_ITERS: $TRAIN_ITERS"
 echo "PIPE PARALLEL: $PP"
+echo "SAVE_INTERVAL: $SAVE_INTERVAL"
 
 DIR=/home/am6429/dl-io/Megatron-DeepSpeed/
 cd ${DIR}
@@ -166,6 +176,8 @@ echo "CFLAGS=-I/soft/datascience/conda/2023-01-10/mconda3/include/" >> .deepspee
 echo "LDFLAGS=-L/soft/datascience/conda/2023-01-10/mconda3/lib/" >> .deepspeed_env
 echo "CUDA_DEVICE_MAX_CONNECTIONS=1" >> .deepspeed_env
 echo "TORCHSNAPSHOT_PER_RANK_MEMORY_BUDGET_BYTES=34359738368" >> .deepspeed_env
+echo "_DEFAULT_MAX_PER_RANK_IO_CONCURRENCY=1" >> .deepspeed_env
+echo "_MAX_PER_RANK_IO_CONCURRENCY=1" >> .deepspeed_env
 # echo "CUDA_VISIBLE_DEVICES=0" >> .deepspeed_env
 
 
@@ -234,7 +246,7 @@ options=" \
        --adam-beta1 0.9 \
        --adam-beta2 0.95 \
        --log-interval 1 \
-       --save-interval 1 \
+       --save-interval $SAVE_INTERVAL \
        --eval-interval 1000 \
        --eval-iters 0 \
        --bf16 \
@@ -246,14 +258,14 @@ options=" \
        --swiglu \
        --normalization rmsnorm \
        --disable-bias-linear \
-       --num-key-value-heads $NUM_KV_HEADS \
-       --checkpoint-activations \
-        --exit-interval ${EXIT_INTERVAL} \
-        --deepspeed \
-        --deepspeed_config=${CONFIG_JSON} \
-        --zero-stage=${ZERO_STAGE} \
-        --deepspeed-activation-checkpointing \
-        "
+       --num-key-value-heads ${NUM_KV_HEADS} \
+       --deepspeed \
+       --exit-interval ${EXIT_INTERVAL} \
+       --deepspeed_config=${CONFIG_JSON} \
+       --zero-stage=${ZERO_STAGE} \
+        --checkpoint-activations \
+        --deepspeed-activation-checkpointing "
+
 # --load ${LOAD_CHECKPOINT_PATH} \
 # --cpu-optimizer
 # --no-pipeline-parallel
@@ -270,8 +282,7 @@ cat <<EOT > $CONFIG_JSON
 	"train_micro_batch_size_per_gpu": $MICRO_BATCH,
 	"steps_per_print": 1,
 	"zero_optimization": {
-		"stage": $ZERO_STAGE,
-		"overlap_comm": true
+		"stage": $ZERO_STAGE
 	},
 	"bf16": {
 		"enabled": true
@@ -279,15 +290,10 @@ cat <<EOT > $CONFIG_JSON
 	"data_types": {
 		"grad_accum_dtype": "fp32"
  	},
-	"wall_clock_breakdown": true,
-	"memory_breakdown": true,
+	"wall_clock_breakdown": false,
+	"memory_breakdown": false,
 	"flops_profiler": {
-		"enabled": true,
-		"profile_step": 1,
-		"module_depth": -1,
-		"top_modules": 1,
-		"detailed": true,
-		"output_file": null
+		"enabled": false
 	},
 	"none_ckpt_config": true
 }
@@ -300,8 +306,7 @@ cat <<EOT > $CONFIG_JSON
 	"train_micro_batch_size_per_gpu": $MICRO_BATCH,
 	"steps_per_print": 1,
 	"zero_optimization": {
-		"stage": $ZERO_STAGE,
-		"overlap_comm": true
+		"stage": $ZERO_STAGE
 	},
 	"bf16": {
 		"enabled": true
@@ -309,15 +314,10 @@ cat <<EOT > $CONFIG_JSON
 	"data_types": {
 		"grad_accum_dtype": "fp32"
  	},
-	"wall_clock_breakdown": true,
-	"memory_breakdown": true,
+	"wall_clock_breakdown": false,
+	"memory_breakdown": false,
 	"flops_profiler": {
-		"enabled": true,
-		"profile_step": 1,
-		"module_depth": -1,
-		"top_modules": 1,
-		"detailed": true,
-		"output_file": null
+		"enabled": false
 	}
 }
 EOT
@@ -329,8 +329,7 @@ cat <<EOT > $CONFIG_JSON
 	"train_micro_batch_size_per_gpu": $MICRO_BATCH,
 	"steps_per_print": 1,
 	"zero_optimization": {
-		"stage": $ZERO_STAGE,
-		"overlap_comm": true
+		"stage": $ZERO_STAGE
 	},
 	"bf16": {
 		"enabled": true
@@ -338,15 +337,10 @@ cat <<EOT > $CONFIG_JSON
 	"data_types": {
 		"grad_accum_dtype": "fp32"
  	},
-	"wall_clock_breakdown": true,
-	"memory_breakdown": true,
+	"wall_clock_breakdown": false,
+	"memory_breakdown": false,
 	"flops_profiler": {
-		"enabled": true,
-		"profile_step": 1,
-		"module_depth": -1,
-		"top_modules": 1,
-		"detailed": true,
-		"output_file": null
+		"enabled": false
 	},
 	"async_ckpt_config": {
 		"host_cache": -1
@@ -361,8 +355,7 @@ cat <<EOT > $CONFIG_JSON
 	"train_micro_batch_size_per_gpu": $MICRO_BATCH,
 	"steps_per_print": 1,
 	"zero_optimization": {
-		"stage": $ZERO_STAGE,
-		"overlap_comm": true
+		"stage": $ZERO_STAGE
 	},
 	"bf16": {
 		"enabled": true
@@ -370,19 +363,14 @@ cat <<EOT > $CONFIG_JSON
 	"data_types": {
 		"grad_accum_dtype": "fp32"
  	},
-	"wall_clock_breakdown": true,
-	"memory_breakdown": true,
+	"wall_clock_breakdown": false,
+	"memory_breakdown": false,
 	"flops_profiler": {
-		"enabled": true,
-		"profile_step": 1,
-		"module_depth": -1,
-		"top_modules": 1,
-		"detailed": true,
-		"output_file": null
+		"enabled": false
 	},
 	"veloc_ckpt_config": {
 		"host_cache": $HOST_CACHE,
-        "writer_threads": 1
+        "writer_threads": 8
 	}
 }
 EOT
@@ -394,8 +382,7 @@ cat <<EOT > $CONFIG_JSON
 	"train_micro_batch_size_per_gpu": $MICRO_BATCH,
 	"steps_per_print": 1,
 	"zero_optimization": {
-		"stage": $ZERO_STAGE,
-		"overlap_comm": true
+		"stage": $ZERO_STAGE
 	},
 	"bf16": {
 		"enabled": true
@@ -403,15 +390,10 @@ cat <<EOT > $CONFIG_JSON
 	"data_types": {
 		"grad_accum_dtype": "fp32"
  	},
-	"wall_clock_breakdown": true,
-	"memory_breakdown": true,
+	"wall_clock_breakdown": false,
+	"memory_breakdown": false,
 	"flops_profiler": {
-		"enabled": true,
-		"profile_step": 1,
-		"module_depth": -1,
-		"top_modules": 1,
-		"detailed": true,
-		"output_file": null
+		"enabled": false
 	},
 	"torch_sn_async_ckpt_config": {
 		"enabled": true
@@ -432,14 +414,16 @@ mkdir -p "$output_dir"
 log_str="${model_size_B}B-tp$TP-pp$PP-dp$DP-l$NUM_LAYERS-h$HIDDEN_SIZE-a$NUM_HEADS-sl$SEQ_LENGTH-gbs$GLOBAL_BATCH-mbs-$MICRO_BATCH-ckpt-$CKPT_APPROACH"
 rm -rf $output_dir/log-$log_str.log
 echo "NSYS_REPORT_DIR=${output_dir}/rep-${log_str}-%n">> .deepspeed_env
-eval "rm -rf $CHECKPOINT_PATH"
+pdsh -w "$(awk '{printf "%s%s",sep,$1; sep=","}' $PBS_NODEFILE)" 'rm -rf /local/scratch/*'
+# eval "rm -rf $CHECKPOINT_PATH"
 # run_cmd="rm -rf $CHECKPOINT_PATH && time nsys profile --force-overwrite true -o $output_dir/report-$log_str --stats=true deepspeed ${LAUNCH_PARAMS} ${DIR}/pretrain_gpt.py $@ ${options} | tee $output_dir/log-$log_str.log"
 run_cmd="{ time deepspeed ${LAUNCH_PARAMS} ${DIR}/pretrain_gpt.py ${options} ;} | tee -a $output_dir/log-$log_str.log"
 echo $run_cmd
 
 # echo ${run_cmd}
 eval ${run_cmd}
-ls -ltrh "$CHECKPOINT_PATH/global_step1/" >> "$output_dir/log-$log_str.log"
+ls -ltrh "$CHECKPOINT_PATH/global_step$SAVE_INTERVAL/" >> "$output_dir/log-$log_str.log"
 rm -rf $output_dir/*.sqlite
 # eval "rm -rf $CHECKPOINT_PATH"
-# rm -rf /local/scratch/
+# rm -rf /local/scratch/*
+# set +x

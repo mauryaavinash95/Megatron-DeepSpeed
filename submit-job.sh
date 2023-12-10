@@ -39,7 +39,8 @@ if [[ $NNODES == 0 ]]; then
     L=16
     U=2048
     S=4
-    K=5
+    K=15
+	I=3
 elif [[ $NNODES == 1 ]]; then
     echo "================== 3B LLAMA2 (1 node)"
     m=3
@@ -50,6 +51,7 @@ elif [[ $NNODES == 1 ]]; then
     U=2048
     S=4
     K=5
+	I=1
 elif [[ $NNODES == 2 ]]; then
     echo "================== 7B LLAMA2 (2 nodes)"
     m=7
@@ -59,7 +61,8 @@ elif [[ $NNODES == 2 ]]; then
     L=32
     U=2048
     S=4
-    K=5
+    K=15
+	I=3
 elif [[ $NNODES == 4 ]]; then
     echo "================== 13B LLAMA2 (4 nodes)"
     m=13
@@ -69,7 +72,8 @@ elif [[ $NNODES == 4 ]]; then
     L=40
     U=2048
     S=4
-    K=5
+    K=15
+	I=3
 elif [[ $NNODES == 8 ]]; then
     echo "================== 30B LLAMA2 (8 nodes)"
     m=30
@@ -79,7 +83,8 @@ elif [[ $NNODES == 8 ]]; then
     L=52
     U=2048
     S=4
-    K=5
+    K=15
+	I=3
 elif [[ $NNODES == 20 ]]; then
     echo "================== 70B LLAMA2 (16 nodes)"
     m=70
@@ -89,7 +94,8 @@ elif [[ $NNODES == 20 ]]; then
     L=64
     U=2048
     S=4
-    K=5
+    K=15
+	I=3
 elif [[ $NNODES == 64 ]]; then
     echo "================== 175B LLAMA2 (64 nodes)"
     m=175
@@ -99,15 +105,17 @@ elif [[ $NNODES == 64 ]]; then
     L=112
     U=2048
     S=4
-    K=3
+    K=15
+    I=3
 else
     echo "NNODES not in defined list  (NNODES = $NNODES)"
     exit 1
 fi
 
-# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 0 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K
-# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 0 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K
-# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 1 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K
-# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 2 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K
-bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 3 -h 32 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K
-# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 4 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K
+# echo "========== Set $I"
+# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 0 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I
+# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 0 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I
+# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 1 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I
+# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 2 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I
+bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 3 -h 16 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I
+bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 4 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I

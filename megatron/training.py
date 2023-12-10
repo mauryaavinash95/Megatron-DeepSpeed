@@ -101,17 +101,19 @@ def pretrain(train_valid_test_dataset_provider,
         args_defaults: a dictionary from argument-name to argument-value. It
             to set already parse arguments.
     """
-
+    st_t = time.time()
     # Initalize and get arguments, timers, and Tensorboard writer.
     initialize_megatron(extra_args_provider=extra_args_provider,
                         args_defaults=args_defaults)
     # Set pytorch JIT layer fusion options and warmup JIT functions.
     if get_accelerator().device_name() == 'cuda':
         set_jit_fusion_options()
-
+    print_rank_0(f"initialize_megatron took {time.time()-st_t}")
+    print(f"<<<<<<<<<<< {torch.distributed.get_rank()}")
     # Adjust the startup time so it reflects the largest value.
     # This will be closer to what scheduler will see (outside of
     # image ... launches.
+    st_t = time.time()
     global _TRAIN_START_TIME
     start_time_tensor = get_accelerator().DoubleTensor([_TRAIN_START_TIME])
     torch.distributed.all_reduce(start_time_tensor,
@@ -120,6 +122,7 @@ def pretrain(train_valid_test_dataset_provider,
     print_rank_0('time to initialize megatron (seconds): {:.3f}'.format(
         time.time() - _TRAIN_START_TIME))
     print_datetime('after megatron is initialized')
+    print_rank_0(f"get_accelerator and all_reduce  took {time.time()-st_t}")
 
     args = get_args()
     timers = get_timers()
@@ -194,7 +197,8 @@ def pretrain(train_valid_test_dataset_provider,
     print_rank_0('done with setup ...')
     timers.log(['model-and-optimizer-setup',
                 'train/valid/test-data-iterators-setup'], barrier=True)
-
+    
+    train_timer = time.time()
     if not args.skip_train:
         print_rank_0('training ...')
 
@@ -203,19 +207,20 @@ def pretrain(train_valid_test_dataset_provider,
             print_rank_0("retro cyclic train iters : %d" % args.train_iters)
 
         iteration = 0
+        print_datetime('before training begins')
         if args.do_train and args.train_iters > 0:
             iteration = train(forward_step_func,
                             model, optimizer, opt_param_scheduler,
                             train_data_iterator, valid_data_iterator,
                             process_non_loss_data_func)
-
-        print_datetime('after training is done')
+        print(f"<<<only_train:{time.time()-train_timer}>>>")
+        print_datetime('after training ends')
         # Clean the model
         if args.compression_training:
             model = [redundancy_clean(model[0], args.deepspeed_config, mpu)]
 
-        if args.save and iteration != 0:
-            save_checkpoint(iteration, model, optimizer, opt_param_scheduler)
+        # if args.save and iteration != 0:
+        #     save_checkpoint(iteration, model, optimizer, opt_param_scheduler)
     else:
         print_rank_0('skipping training (--skip-train is on) ...')
 
@@ -237,6 +242,7 @@ def pretrain(train_valid_test_dataset_provider,
                                    verbose=True, write_to_tensorboard=not args.skip_train, test=True)
     if isinstance(model[0], deepspeed.PipelineEngine): 
         model[0].save_checkpoint_terminate()
+    print(f"<<<full_time:{time.time()-train_timer}>>>")
     return model
 
 
@@ -661,8 +667,8 @@ def train_step(forward_step_func, data_iterator,
         optimizer.zero_grad()
 
     # Forward pass.
-    timers('forward-backward', log_level=1).start(
-        barrier=args.barrier_with_L1_time)
+    # timers('forward-backward', log_level=1).start(
+    #     barrier=args.barrier_with_L1_time)
     forward_backward_func = get_forward_backward_func()
     if args.mos or args.kd:
         # args.teacher_forward is used as global variable to enable kd loss
@@ -687,7 +693,7 @@ def train_step(forward_step_func, data_iterator,
     # reset timers if necessary
     if config.timers is None:
         config.timers = timers
-    timers('forward-backward').stop()
+    # timers('forward-backward').stop()
     if args.mos or args.kd:
         args.teacher_forward = False
 
@@ -1048,6 +1054,7 @@ def training_log(loss_dict, total_loss_dict, learning_rate, iteration,
                                   elapsed_time_per_iteration, args.consumed_train_tokens)
         log_string = ' iteration {:8d}/{:8d} |'.format(
             iteration, args.train_iters)
+        log_string = ' elapsed_time {:4f} |'.format(elapsed_time)
         log_string += ' consumed samples: {:12d} |'.format(
             args.consumed_train_samples)
         log_string += ' consumed tokens: {:12d} |'.format(

@@ -3,27 +3,20 @@
 	"train_micro_batch_size_per_gpu": 16,
 	"steps_per_print": 1,
 	"zero_optimization": {
-		"stage": 1,
-		"overlap_comm": true
+		"stage": 1
 	},
 	"bf16": {
 		"enabled": true
-	}, 
+	},
 	"data_types": {
 		"grad_accum_dtype": "fp32"
  	},
-	"wall_clock_breakdown": true,
-	"memory_breakdown": true,
+	"wall_clock_breakdown": false,
+	"memory_breakdown": false,
 	"flops_profiler": {
-		"enabled": true,
-		"profile_step": 1,
-		"module_depth": -1,
-		"top_modules": 1,
-		"detailed": true,
-		"output_file": null
+		"enabled": false
 	},
-	"veloc_ckpt_config": {
-		"host_cache": 32,
-        "writer_threads": 1
+	"torch_sn_async_ckpt_config": {
+		"enabled": true
 	}
 }

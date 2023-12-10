@@ -9,4 +9,6 @@ CFLAGS=-I/soft/datascience/conda/2023-01-10/mconda3/include/
 LDFLAGS=-L/soft/datascience/conda/2023-01-10/mconda3/lib/
 CUDA_DEVICE_MAX_CONNECTIONS=1
 TORCHSNAPSHOT_PER_RANK_MEMORY_BUDGET_BYTES=34359738368
-NSYS_REPORT_DIR=/home/am6429/dl-io/dl-io-outputs/output-llama2/llama2-NN1//rep-3B-tp4-pp1-dp1-l30-h2560-a32-sl2048-gbs16-mbs-16-ckpt-3-%n
+_DEFAULT_MAX_PER_RANK_IO_CONCURRENCY=1
+_MAX_PER_RANK_IO_CONCURRENCY=1
+NSYS_REPORT_DIR=/home/am6429/dl-io/dl-io-outputs/output-llama2/llama2-NN1//rep-3B-tp4-pp1-dp1-l30-h2560-a32-sl2048-gbs16-mbs-16-ckpt-4-%n
