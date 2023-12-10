@@ -7,7 +7,7 @@
 
 source ~/.bash_profile
 dlconda
-
+# set -x
 # Define default values
 CKPT_APPROACH=0
 HOST_CACHE=0
@@ -274,14 +274,14 @@ options=" \
        --swiglu \
        --normalization rmsnorm \
        --disable-bias-linear \
-       --num-key-value-heads $NUM_KV_HEADS \
-       --checkpoint-activations \
-        --exit-interval ${EXIT_INTERVAL} \
-        --deepspeed \
-        --deepspeed_config=${CONFIG_JSON} \
-        --zero-stage=${ZERO_STAGE} \
-        --deepspeed-activation-checkpointing \
-        "
+       --num-key-value-heads ${NUM_KV_HEADS} \
+       --deepspeed \
+       --exit-interval ${EXIT_INTERVAL} \
+       --deepspeed_config=${CONFIG_JSON} \
+       --zero-stage=${ZERO_STAGE} \
+        --checkpoint-activations \
+        --deepspeed-activation-checkpointing "
+
 # --load ${LOAD_CHECKPOINT_PATH} \
 # --cpu-optimizer
 # --no-pipeline-parallel
@@ -438,7 +438,7 @@ echo $run_cmd
 
 # echo ${run_cmd}
 eval ${run_cmd}
-ls -ltrh "$CHECKPOINT_PATH/global_step1/" >> "$output_dir/log-$log_str.log"
+ls -ltrh "$CHECKPOINT_PATH/global_step$SAVE_INTERVAL/" >> "$output_dir/log-$log_str.log"
 rm -rf $output_dir/*.sqlite
 eval "rm -rf $CHECKPOINT_PATH"
 rm -rf /local/scratch/*

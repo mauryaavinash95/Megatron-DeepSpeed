@@ -224,7 +224,7 @@ def get_rng_state():
 
 def save_checkpoint(iteration, model, optimizer, opt_param_scheduler):
     """Save a model checkpoint."""
-    t = time.time()
+    # t = time.time()
     args = get_args()
 
     # Only rank zero of the data parallel writes to the disk.
@@ -246,7 +246,7 @@ def save_checkpoint(iteration, model, optimizer, opt_param_scheduler):
             get_distributed_optimizer_checkpoint_name(checkpoint_name)
         ensure_directory_exists(optim_checkpoint_name)
         optimizer.save_parameter_state(optim_checkpoint_name)
-    print(f"[Megatron] Stage-1 {time.time()-t} for {checkpoint_name}")
+    # print(f"[Megatron] Stage-1 {time.time()-t} for {checkpoint_name}")
     # Collect args, model, RNG.
     if not torch.distributed.is_initialized() \
        or mpu.get_data_parallel_rank() == 0 or args.deepspeed:
@@ -320,11 +320,11 @@ def save_checkpoint(iteration, model, optimizer, opt_param_scheduler):
         tracker_filename = get_checkpoint_tracker_filename(args.save)
         with open(tracker_filename, 'w') as f:
             f.write(str(iteration))
-    print(f"[Megatron] Stage-5 update tracker file {time.time()-t} for {checkpoint_name}")
+    # print(f"[Megatron] Stage-5 update tracker file {time.time()-t} for {checkpoint_name}")
     # Wait so everyone is done (not necessary)
     if torch.distributed.is_initialized():
         torch.distributed.barrier()
-    print(f"[Megatron] Stage-6 last barrier, finally returning {time.time()-t} for {checkpoint_name}")
+    # print(f"[Megatron] Stage-6 last barrier, finally returning {time.time()-t} for {checkpoint_name}")
 
 
 def _transpose_first_dim(t, num_splits, num_splits_first, model):
