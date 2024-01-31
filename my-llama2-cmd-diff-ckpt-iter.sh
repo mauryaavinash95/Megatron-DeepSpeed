@@ -21,8 +21,9 @@ NUM_KV_HEADS=0
 TRAIN_ITERS=0
 NNODES=$(wc -l < $PBS_NODEFILE)
 PP=$NNODES
+TP=4
 CKPT_INTVAL=1
-while getopts ":c:h:m:H:F:N:L:U:S:K:I:" opt; do
+while getopts ":c:h:m:H:F:N:L:U:S:K:P:T:I:" opt; do
   case $opt in
     c)
       if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
@@ -104,6 +105,20 @@ while getopts ":c:h:m:H:F:N:L:U:S:K:I:" opt; do
         exit 1
       fi
       ;;
+    P)
+      if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
+        PP="$OPTARG"
+      else
+        PP=$NNODES
+      fi
+      ;;
+    T)
+      if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
+        TP="$OPTARG"
+      else
+        TP=4
+      fi
+      ;;
     I)
       if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
         CKPT_INTVAL="$OPTARG"
@@ -153,8 +168,11 @@ TOKENIZER_PATH=/home/am6429/dl-io/datasets/tokenizer.model
 VOCAB_PATH=${BASE_DATA_PATH}/gpt2-vocab.json
 MERGE_PATH=${BASE_DATA_PATH}/gpt2-merges.txt
 
-CONFIG_JSON="$DIR/ds_config.json"
-HOSTFILE="$DIR/hostfile"
+output_dir="/home/am6429/dl-io/dl-io-outputs/output-llama2-CI-scale-30B-v2/llama2-NN$NNODES-CI$CKPT_INTVAL/"
+mkdir -p "$output_dir"
+
+CONFIG_JSON="$output_dir/ds_config.json"
+HOSTFILE="$output_dir/hostfile"
 echo "PATH=${PATH}" > .deepspeed_env
 echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> .deepspeed_env
 echo "http_proxy=${http_proxy}" >> .deepspeed_env
@@ -165,7 +183,9 @@ echo "IBV_FORK_SAFE=1" >> .deepspeed_env
 echo "CFLAGS=-I/soft/datascience/conda/2023-01-10/mconda3/include/" >> .deepspeed_env
 echo "LDFLAGS=-L/soft/datascience/conda/2023-01-10/mconda3/lib/" >> .deepspeed_env
 echo "CUDA_DEVICE_MAX_CONNECTIONS=1" >> .deepspeed_env
-
+echo "TORCHSNAPSHOT_PER_RANK_MEMORY_BUDGET_BYTES=34359738368" >> .deepspeed_env
+echo "_DEFAULT_MAX_PER_RANK_IO_CONCURRENCY=1" >> .deepspeed_env
+echo "_MAX_PER_RANK_IO_CONCURRENCY=1" >> .deepspeed_env
 
 echo "Number of nodes found as $NNODES"
 sed 's/$/ slots=4/' $PBS_NODEFILE > $HOSTFILE
@@ -180,16 +200,15 @@ ZERO_STAGE=1
 
 EXIT_INTERVAL=5000
 TP_DIST=$(awk "BEGIN { printf \"%.0f\", sqrt($WORLD_SIZE) }") 
-TP=4 #$(( WORLD_SIZE / TP_DIST ))
-PP=$PP #$(( WORLD_SIZE / TP ))
-DP=$(( NNODES / PP ))
+DP=$(((NNODES * 4) / (PP * TP)))
 WORLD_SIZE=$((TP*PP*DP))
 MICRO_BATCH=16
 GLOBAL_BATCH=$(( MICRO_BATCH * DP ))
 # MICRO_BATCH=$(( GLOBAL_BATCH / DP ))
-# CHECKPOINT_PATH=/local/scratch/llama2/tp${TP}_pp${PP}_dp${DP} 
-CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/llama2/tp${TP}_pp${PP}_dp${DP} 
-LOAD_CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/llama2/tp${TP}_pp${PP}_dp${DP}
+CHECKPOINT_PATH=/local/scratch/llama2/tp${TP}_pp${PP}_dp${DP} 
+# CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/llama2/tp${TP}_pp${PP}_dp${DP} 
+LOAD_CHECKPOINT_PATH=/local/scratch/llama2/tp${TP}_pp${PP}_dp${DP}
+mkdir -p $CHECKPOINT_PATH 
 
 LR=3e-4
 MIN_LR=3e-5
@@ -200,13 +219,12 @@ GRAD_CLIP=1
 EXP_DIR=${HOME}/experiments/results/ckpt_reshape
 LOG_DIR="${EXP_DIR}/tensorboard/tp${TP}_pp${PP}_dp${DP}_hd${HIDDEN}_nl${LAYERS}_gbsz${GLOBAL_BATCH}_mbsz${MICRO_BATCH}_z${ZERO_STAGE}_LR_${LR}_${MIN_LR}_${DTYPE}_cont"
 mkdir -p $LOG_DIR
-
+# --ffn-hidden-size $FFN_HIDDEN_SIZE \
 options=" \
 	--tensor-model-parallel-size $TP \
        --pipeline-model-parallel-size $PP \
        --num-layers $NUM_LAYERS \
        --hidden-size $HIDDEN_SIZE \
-       --ffn-hidden-size $FFN_HIDDEN_SIZE \
        --num-attention-heads $NUM_HEADS \
        --micro-batch-size $MICRO_BATCH \
        --global-batch-size $GLOBAL_BATCH \
@@ -268,8 +286,7 @@ cat <<EOT > $CONFIG_JSON
 	"train_micro_batch_size_per_gpu": $MICRO_BATCH,
 	"steps_per_print": 1,
 	"zero_optimization": {
-		"stage": $ZERO_STAGE,
-		"overlap_comm": true
+		"stage": $ZERO_STAGE
 	},
 	"bf16": {
 		"enabled": true
@@ -277,15 +294,10 @@ cat <<EOT > $CONFIG_JSON
 	"data_types": {
 		"grad_accum_dtype": "fp32"
  	},
-	"wall_clock_breakdown": true,
-	"memory_breakdown": true,
+	"wall_clock_breakdown": false,
+	"memory_breakdown": false,
 	"flops_profiler": {
-		"enabled": true,
-		"profile_step": 1,
-		"module_depth": -1,
-		"top_modules": 1,
-		"detailed": true,
-		"output_file": null
+		"enabled": false
 	},
 	"none_ckpt_config": true
 }
@@ -298,8 +310,7 @@ cat <<EOT > $CONFIG_JSON
 	"train_micro_batch_size_per_gpu": $MICRO_BATCH,
 	"steps_per_print": 1,
 	"zero_optimization": {
-		"stage": $ZERO_STAGE,
-		"overlap_comm": true
+		"stage": $ZERO_STAGE
 	},
 	"bf16": {
 		"enabled": true
@@ -307,15 +318,10 @@ cat <<EOT > $CONFIG_JSON
 	"data_types": {
 		"grad_accum_dtype": "fp32"
  	},
-	"wall_clock_breakdown": true,
-	"memory_breakdown": true,
+	"wall_clock_breakdown": false,
+	"memory_breakdown": false,
 	"flops_profiler": {
-		"enabled": true,
-		"profile_step": 1,
-		"module_depth": -1,
-		"top_modules": 1,
-		"detailed": true,
-		"output_file": null
+		"enabled": false
 	}
 }
 EOT
@@ -327,8 +333,7 @@ cat <<EOT > $CONFIG_JSON
 	"train_micro_batch_size_per_gpu": $MICRO_BATCH,
 	"steps_per_print": 1,
 	"zero_optimization": {
-		"stage": $ZERO_STAGE,
-		"overlap_comm": true
+		"stage": $ZERO_STAGE
 	},
 	"bf16": {
 		"enabled": true
@@ -336,15 +341,10 @@ cat <<EOT > $CONFIG_JSON
 	"data_types": {
 		"grad_accum_dtype": "fp32"
  	},
-	"wall_clock_breakdown": true,
-	"memory_breakdown": true,
+	"wall_clock_breakdown": false,
+	"memory_breakdown": false,
 	"flops_profiler": {
-		"enabled": true,
-		"profile_step": 1,
-		"module_depth": -1,
-		"top_modules": 1,
-		"detailed": true,
-		"output_file": null
+		"enabled": false
 	},
 	"async_ckpt_config": {
 		"host_cache": -1
@@ -359,8 +359,7 @@ cat <<EOT > $CONFIG_JSON
 	"train_micro_batch_size_per_gpu": $MICRO_BATCH,
 	"steps_per_print": 1,
 	"zero_optimization": {
-		"stage": $ZERO_STAGE,
-		"overlap_comm": true
+		"stage": $ZERO_STAGE
 	},
 	"bf16": {
 		"enabled": true
@@ -368,18 +367,40 @@ cat <<EOT > $CONFIG_JSON
 	"data_types": {
 		"grad_accum_dtype": "fp32"
  	},
-	"wall_clock_breakdown": true,
-	"memory_breakdown": true,
+	"wall_clock_breakdown": false,
+	"memory_breakdown": false,
 	"flops_profiler": {
-		"enabled": true,
-		"profile_step": 1,
-		"module_depth": -1,
-		"top_modules": 1,
-		"detailed": true,
-		"output_file": null
+		"enabled": false
 	},
 	"veloc_ckpt_config": {
-		"host_cache": $HOST_CACHE
+		"host_cache": $HOST_CACHE,
+        "writer_threads": 8
+	}
+}
+EOT
+elif [[ $CKPT_APPROACH == 4 ]]; then
+echo "Checkpointing using TorchSnapshot Async approach"
+cat <<EOT > $CONFIG_JSON
+{
+	"train_batch_size": $GLOBAL_BATCH,
+	"train_micro_batch_size_per_gpu": $MICRO_BATCH,
+	"steps_per_print": 1,
+	"zero_optimization": {
+		"stage": $ZERO_STAGE
+	},
+	"bf16": {
+		"enabled": true
+	},
+	"data_types": {
+		"grad_accum_dtype": "fp32"
+ 	},
+	"wall_clock_breakdown": false,
+	"memory_breakdown": false,
+	"flops_profiler": {
+		"enabled": false
+	},
+	"torch_sn_async_ckpt_config": {
+		"enabled": true
 	}
 }
 EOT
@@ -392,11 +413,13 @@ fi
 # model_size_B=$(awk "BEGIN { printf \"%.1f\", $model_size / 1e9 }")
 # echo "Model size: ${model_size}, in B: ${model_size_B}"
 
-output_dir="/home/am6429/dl-io/dl-io-outputs/output-llama2-CI-scale-7B-100-iter/llama2-NN$NNODES-CI$CKPT_INTVAL/"
-mkdir -p "$output_dir"
+
 log_str="${model_size_B}B-tp$TP-pp$PP-dp$DP-l$NUM_LAYERS-h$HIDDEN_SIZE-a$NUM_HEADS-sl$SEQ_LENGTH-gbs$GLOBAL_BATCH-mbs-$MICRO_BATCH-ckpt-$CKPT_APPROACH"
 rm -rf $output_dir/log-$log_str.log
 echo "NSYS_REPORT_DIR=${output_dir}/rep-${log_str}-%n">> .deepspeed_env
+pdsh -w "$(awk '{printf "%s%s",sep,$1; sep=","}' $PBS_NODEFILE)" 'rm -rf /local/scratch/*'
+pdsh -w "$(awk '{printf "%s%s",sep,$1; sep=","}' $PBS_NODEFILE)" 'killall python3'
+pdsh -w "$(awk '{printf "%s%s",sep,$1; sep=","}' $PBS_NODEFILE)" 'nohup python3 /home/am6429/dl-io/tests_local/delete-oldest-after-x-time.py > /dev/null 2>&1 &'
 eval "rm -rf $CHECKPOINT_PATH"
 # run_cmd="rm -rf $CHECKPOINT_PATH && time nsys profile --force-overwrite true -o $output_dir/report-$log_str --stats=true deepspeed ${LAUNCH_PARAMS} ${DIR}/pretrain_gpt.py $@ ${options} | tee $output_dir/log-$log_str.log"
 run_cmd="{ time deepspeed ${LAUNCH_PARAMS} ${DIR}/pretrain_gpt.py ${options} ;} | tee -a $output_dir/log-$log_str.log"
@@ -404,7 +427,8 @@ echo $run_cmd
 
 # echo ${run_cmd}
 eval ${run_cmd}
-ls -ltrh "$CHECKPOINT_PATH/global_step1/" >> "$output_dir/log-$log_str.log"
+ls -ltrh "$CHECKPOINT_PATH/global_step2/" >> "$output_dir/log-$log_str.log"
 rm -rf $output_dir/*.sqlite
 eval "rm -rf $CHECKPOINT_PATH"
-rm -rf /local/scratch/
+rm -rf /local/scratch/*
+pdsh -w "$(awk '{printf "%s%s",sep,$1; sep=","}' $PBS_NODEFILE)" 'killall python3'

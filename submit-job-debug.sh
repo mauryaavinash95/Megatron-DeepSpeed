@@ -1,5 +1,5 @@
 #!/bin/bash -l
-### PBS -l nodes=70:system=polaris
+### PBS -l nodes=8:system=polaris
 ### PBS -l walltime=01:00:00
 ### PBS -q debug-scaling
 ### PBS -A VeloC
@@ -11,7 +11,7 @@ echo "NUM_OF_NODES= ${NNODES}"
 cd ~/dl-io/DeepSpeed/
 source ~/.bash_profile
 dlconda
-# rm -rf ~/dl-io/DeepSpeed/build/* && pip uninstall deepspeed -y && CMAKE_POSITION_INDEPENDENT_CODE=ON NVCC_PREPEND_FLAGS="--forward-unknown-opts" DS_BUILD_UTILS=1 DS_BUILD_VELOC_CKPT=1 pip install . --global-option="build_ext" --global-option="-j48"
+pip uninstall deepspeed -y && CMAKE_POSITION_INDEPENDENT_CODE=ON NVCC_PREPEND_FLAGS="--forward-unknown-opts" DS_BUILD_UTILS=1 DS_BUILD_VELOC_CKPT=1 pip install . --global-option="build_ext" --global-option="-j48"
 rm -rf /grand/projects/VeloC/am6429/scratch/*
 rm -rf /local/scratch/*
 cd ~/
@@ -69,8 +69,10 @@ elif [[ $NNODES == 2 ]]; then
     S=8
     K=5
 	I=1
-    P=$NNODES
-    T=4
+    # P=$NNODES
+    # T=4
+    P=1
+    T=8
 elif [[ $NNODES == 4 ]]; then
     echo "================== 13B LLAMA2 (4 nodes)"
     m=13
@@ -84,19 +86,19 @@ elif [[ $NNODES == 4 ]]; then
 	I=1
     P=$NNODES
     T=4
-elif [[ $NNODES == 8 ]]; then
-    echo "================== 30B LLAMA2 (8 nodes)"
-    m=30
-    H=6656
-    F=17920
-    N=60
-    L=52
-    U=2048
-    S=4
-    K=5
-	I=1
-    P=$NNODES
-    T=4
+# elif [[ $NNODES == 8 ]]; then
+#     echo "================== 30B LLAMA2 (8 nodes)"
+#     m=30
+#     H=6656
+#     F=17920
+#     N=60
+#     L=52
+#     U=2048
+#     S=4
+#     K=5
+# 	I=1
+#     P=$NNODES
+#     T=4
 elif [[ $NNODES == 20 ]]; then
     echo "================== 70B LLAMA2 (16 nodes)"
     m=70
@@ -126,7 +128,7 @@ elif [[ $NNODES == 70 ]]; then
 elif [[ $NNODES == 100 ]]; then
     echo "================== 500B LLAMA2 (100 nodes)"
     m=500
-    H=20480
+    H=20000
     F=28672
     N=100
     L=160
@@ -136,14 +138,27 @@ elif [[ $NNODES == 100 ]]; then
     I=1
     P=$NNODES
     T=4
+elif [[ $NNODES == 8 ]]; then
+    echo "================== 0.70B LLAMA2 (9 nodes)"
+    m=0.7
+    H=20000
+    F=61440
+    N=8
+    L=160
+    U=2048
+    S=8
+    K=2
+	I=1
+    P=8
+    T=4
 else
     echo "NNODES not in defined list  (NNODES = $NNODES)"
     exit 1
 fi
 
 bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 0 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I -P $P -T $T
-bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 0 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I -P $P -T $T
-bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 1 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I -P $P -T $T
-bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 2 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I -P $P -T $T
-bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 4 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I -P $P -T $T
-bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 3 -h 16 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I -P $P -T $T
+# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 0 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I -P $P -T $T
+# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 1 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I -P $P -T $T
+# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 2 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I -P $P -T $T
+# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 4 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I -P $P -T $T
+# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 3 -h 16 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I -P $P -T $T

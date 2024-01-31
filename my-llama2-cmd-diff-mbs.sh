@@ -7,7 +7,7 @@
 
 source ~/.bash_profile
 dlconda
-# set -x
+
 # Define default values
 CKPT_APPROACH=0
 HOST_CACHE=0
@@ -22,9 +22,10 @@ TRAIN_ITERS=0
 NNODES=$(wc -l < $PBS_NODEFILE)
 PP=$NNODES
 TP=4
-SAVE_INTERVAL=1
-
-while getopts ":c:h:m:H:F:N:L:U:S:K:P:T:I:" opt; do
+CKPT_INTVAL=1
+MICRO_BATCH=16
+while getopts ":c:h:m:H:F:N:L:U:S:K:P:T:I:M:" opt; do
+  echo "Processing option: -$opt with argument: $OPTARG"
   case $opt in
     c)
       if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
@@ -122,9 +123,16 @@ while getopts ":c:h:m:H:F:N:L:U:S:K:P:T:I:" opt; do
       ;;
     I)
       if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
-        SAVE_INTERVAL="$OPTARG"
+        CKPT_INTVAL="$OPTARG"
       else
-        echo "Invalid SAVE_INTERVAL: $OPTARG is not a valid integer." >&2
+        CKPT_INTVAL=1
+      fi
+      ;;
+    M)
+      if [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
+        MICRO_BATCH="$OPTARG"
+      else
+        echo "Invalid MICRO_BATCH: $OPTARG is not a valid integer." >&2
         exit 1
       fi
       ;;
@@ -156,8 +164,9 @@ echo "NUM_HEADS: $NUM_HEADS"
 echo "SEQ_LENGTH: $SEQ_LENGTH"
 echo "NUM_KV_HEADS: $NUM_KV_HEADS"
 echo "TRAIN_ITERS: $TRAIN_ITERS"
-echo "PIPE PARALLEL: $PP"
-echo "SAVE_INTERVAL: $SAVE_INTERVAL"
+echo "CKPT INTVAL: $CKPT_INTVAL"
+echo "MICRO BATCH: $MICRO_BATCH"
+
 
 DIR=/home/am6429/dl-io/Megatron-DeepSpeed/
 cd ${DIR}
@@ -171,9 +180,9 @@ TOKENIZER_PATH=/home/am6429/dl-io/datasets/tokenizer.model
 VOCAB_PATH=${BASE_DATA_PATH}/gpt2-vocab.json
 MERGE_PATH=${BASE_DATA_PATH}/gpt2-merges.txt
 
-output_dir="/home/am6429/dl-io/dl-io-outputs/output-llama2-13B-DP-scale-v2/llama2-NN$NNODES/"
-# output_dir="/home/am6429/dl-io/dl-io-outputs/output-llama2/llama2-NN$NNODES/"
+output_dir="/home/am6429/dl-io/dl-io-outputs/output-llama2-mbs-scale-v2/llama2-NN$NNODES-MBS$MICRO_BATCH/"
 mkdir -p "$output_dir"
+
 CONFIG_JSON="$output_dir/ds_config.json"
 HOSTFILE="$output_dir/hostfile"
 echo "PATH=${PATH}" > .deepspeed_env
@@ -189,9 +198,6 @@ echo "CUDA_DEVICE_MAX_CONNECTIONS=1" >> .deepspeed_env
 echo "TORCHSNAPSHOT_PER_RANK_MEMORY_BUDGET_BYTES=34359738368" >> .deepspeed_env
 echo "_DEFAULT_MAX_PER_RANK_IO_CONCURRENCY=1" >> .deepspeed_env
 echo "_MAX_PER_RANK_IO_CONCURRENCY=1" >> .deepspeed_env
-# echo "NCCL_DEBUG=INFO" >> .deepspeed_env  # or 1 for more verbose output
-# echo "CUDA_VISIBLE_DEVICES=0" >> .deepspeed_env
-
 
 echo "Number of nodes found as $NNODES"
 sed 's/$/ slots=4/' $PBS_NODEFILE > $HOSTFILE
@@ -204,23 +210,17 @@ USE_DEEPSPEED=1
 ZERO_STAGE=1
 
 
-EXIT_INTERVAL=20
+EXIT_INTERVAL=5000
+TP_DIST=$(awk "BEGIN { printf \"%.0f\", sqrt($WORLD_SIZE) }") 
 DP=$(((NNODES * 4) / (PP * TP)))
 WORLD_SIZE=$((TP*PP*DP))
-# MICRO_BATCH=4
-if [ "$NNODES" -eq 100 ] || [ "$NNODES" -eq 70 ]; then
-    MICRO_BATCH=8
-    GLOBAL_BATCH=$(( MICRO_BATCH * 2 ))
-else
-    MICRO_BATCH=16
-    GLOBAL_BATCH=$(( MICRO_BATCH * DP ))
-fi
 
-
+GLOBAL_BATCH=$(( MICRO_BATCH * DP ))
 # MICRO_BATCH=$(( GLOBAL_BATCH / DP ))
 CHECKPOINT_PATH=/local/scratch/llama2/tp${TP}_pp${PP}_dp${DP} 
 # CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/llama2/tp${TP}_pp${PP}_dp${DP} 
-# LOAD_CHECKPOINT_PATH=/grand/projects/VeloC/am6429/scratch/llama2/tp${TP}_pp${PP}_dp${DP}
+LOAD_CHECKPOINT_PATH=/local/scratch/llama2/tp${TP}_pp${PP}_dp${DP}
+mkdir -p $CHECKPOINT_PATH 
 
 LR=3e-4
 MIN_LR=3e-5
@@ -231,7 +231,6 @@ GRAD_CLIP=1
 EXP_DIR=${HOME}/experiments/results/ckpt_reshape
 LOG_DIR="${EXP_DIR}/tensorboard/tp${TP}_pp${PP}_dp${DP}_hd${HIDDEN}_nl${LAYERS}_gbsz${GLOBAL_BATCH}_mbsz${MICRO_BATCH}_z${ZERO_STAGE}_LR_${LR}_${MIN_LR}_${DTYPE}_cont"
 mkdir -p $LOG_DIR
-
 # --ffn-hidden-size $FFN_HIDDEN_SIZE \
 options=" \
 	--tensor-model-parallel-size $TP \
@@ -263,7 +262,7 @@ options=" \
        --adam-beta1 0.9 \
        --adam-beta2 0.95 \
        --log-interval 1 \
-       --save-interval $SAVE_INTERVAL \
+       --save-interval $CKPT_INTVAL \
        --eval-interval 1000 \
        --eval-iters 0 \
        --bf16 \
@@ -275,14 +274,14 @@ options=" \
        --swiglu \
        --normalization rmsnorm \
        --disable-bias-linear \
-       --num-key-value-heads ${NUM_KV_HEADS} \
-       --deepspeed \
-       --exit-interval ${EXIT_INTERVAL} \
-       --deepspeed_config=${CONFIG_JSON} \
-       --zero-stage=${ZERO_STAGE} \
-        --checkpoint-activations \
-        --deepspeed-activation-checkpointing "
-
+       --num-key-value-heads $NUM_KV_HEADS \
+       --checkpoint-activations \
+        --exit-interval ${EXIT_INTERVAL} \
+        --deepspeed \
+        --deepspeed_config=${CONFIG_JSON} \
+        --zero-stage=${ZERO_STAGE} \
+        --deepspeed-activation-checkpointing \
+        "
 # --load ${LOAD_CHECKPOINT_PATH} \
 # --cpu-optimizer
 # --no-pipeline-parallel
@@ -431,15 +430,16 @@ log_str="${model_size_B}B-tp$TP-pp$PP-dp$DP-l$NUM_LAYERS-h$HIDDEN_SIZE-a$NUM_HEA
 rm -rf $output_dir/log-$log_str.log
 echo "NSYS_REPORT_DIR=${output_dir}/rep-${log_str}-%n">> .deepspeed_env
 pdsh -w "$(awk '{printf "%s%s",sep,$1; sep=","}' $PBS_NODEFILE)" 'rm -rf /local/scratch/*'
-# eval "rm -rf $CHECKPOINT_PATH"
+# pdsh -w "$(awk '{printf "%s%s",sep,$1; sep=","}' $PBS_NODEFILE)" 'nohup python3 /home/am6429/dl-io/tests_local/delete-oldest-after-x-time.py > /dev/null 2>&1 &'
+eval "rm -rf $CHECKPOINT_PATH"
 # run_cmd="rm -rf $CHECKPOINT_PATH && time nsys profile --force-overwrite true -o $output_dir/report-$log_str --stats=true deepspeed ${LAUNCH_PARAMS} ${DIR}/pretrain_gpt.py $@ ${options} | tee $output_dir/log-$log_str.log"
 run_cmd="{ time deepspeed ${LAUNCH_PARAMS} ${DIR}/pretrain_gpt.py ${options} ;} | tee -a $output_dir/log-$log_str.log"
 echo $run_cmd
 
 # echo ${run_cmd}
 eval ${run_cmd}
-ls -ltrh "$CHECKPOINT_PATH/global_step$SAVE_INTERVAL/" >> "$output_dir/log-$log_str.log"
+ls -ltrh "$CHECKPOINT_PATH/global_step1/" >> "$output_dir/log-$log_str.log"
 rm -rf $output_dir/*.sqlite
-# eval "rm -rf $CHECKPOINT_PATH"
-# rm -rf /local/scratch/*
-# set +x
+eval "rm -rf $CHECKPOINT_PATH"
+rm -rf /local/scratch/*
+pdsh -w "$(awk '{printf "%s%s",sep,$1; sep=","}' $PBS_NODEFILE)" 'killall python3'

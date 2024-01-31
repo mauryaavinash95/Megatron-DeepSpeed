@@ -29,17 +29,35 @@ cd ~/
 # bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 0 -h 0 -m 7 -H 4096 -F 11008 -N 32 -L 32 -U 2048 -S 4 -K 5
 # bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 0 -h 0 -m 13 -H 5120 -F 13824 -N 40 -L 40 -U 2048 -S 4 -K 5
 
-echo "================== Scaling 30B LLAMA2 (8 nodes)"
-m=30
-H=6656
-F=17920
-N=60
-L=52
+# echo "================== Scaling 30B LLAMA2 (8 nodes)"
+# m=30
+# H=6656
+# F=17920
+# N=60
+# L=52
+# U=2048
+# S=4
+# K=5
+# P=$NNODES
+# I=1
+
+echo "Scaling data parallel runs for 13B LLAMA2 (4 nodes)"
+m=13
+H=5120
+F=13824
+N=40
+L=40
 U=2048
 S=4
 K=5
-# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 0 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -P 8
-# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 0 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -P 8
-# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 1 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -P 8
-# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 2 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -P 8
-bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 3 -h 32 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -P 8
+I=1
+P=4
+T=4
+
+
+# bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 0 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I -P $P -T $T
+bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 0 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I -P $P -T $T
+bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 1 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I -P $P -T $T
+bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 2 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I -P $P -T $T
+bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 4 -h 0 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I -P $P -T $T
+bash ~/dl-io/Megatron-DeepSpeed/my-llama2-cmd.sh -c 3 -h 16 -m $m -H $H -F $F -N $N -L $L -U $U -S $S -K $K -I $I -P $P -T $T

@@ -16,7 +16,7 @@
 	"flops_profiler": {
 		"enabled": false
 	},
-	"torch_sn_async_ckpt_config": {
-		"enabled": true
+	"async_ckpt_config": {
+		"host_cache": -1
 	}
 }
