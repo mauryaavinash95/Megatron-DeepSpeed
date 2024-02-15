@@ -174,8 +174,8 @@ MERGE_PATH=${BASE_DATA_PATH}/gpt2-merges.txt
 output_dir="/home/am6429/dl-io/dl-io-outputs/output-llama2-13B-DP-scale-v2/llama2-NN$NNODES/"
 # output_dir="/home/am6429/dl-io/dl-io-outputs/output-llama2/llama2-NN$NNODES/"
 mkdir -p "$output_dir"
-CONFIG_JSON="$output_dir/ds_config.json"
-HOSTFILE="$output_dir/hostfile"
+CONFIG_JSON="$DIR/ds_config.json"
+HOSTFILE="$DIR/hostfile"
 echo "PATH=${PATH}" > .deepspeed_env
 echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> .deepspeed_env
 echo "http_proxy=${http_proxy}" >> .deepspeed_env
@@ -436,8 +436,8 @@ pdsh -w "$(awk '{printf "%s%s",sep,$1; sep=","}' $PBS_NODEFILE)" 'rm -rf /local/
 run_cmd="{ time deepspeed ${LAUNCH_PARAMS} ${DIR}/pretrain_gpt.py ${options} ;} | tee -a $output_dir/log-$log_str.log"
 echo $run_cmd
 
-# echo ${run_cmd}
-eval ${run_cmd}
+echo ${run_cmd}
+# eval ${run_cmd}
 ls -ltrh "$CHECKPOINT_PATH/global_step$SAVE_INTERVAL/" >> "$output_dir/log-$log_str.log"
 rm -rf $output_dir/*.sqlite
 # eval "rm -rf $CHECKPOINT_PATH"

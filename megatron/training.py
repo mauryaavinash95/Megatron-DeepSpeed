@@ -1019,6 +1019,7 @@ def training_log(loss_dict, total_loss_dict, learning_rate, iteration,
 
     if iteration % args.log_interval == 0:
         elapsed_time = timers('interval-time').elapsed(barrier=True)
+        print_rank_0(f'<<<iter_marker:{time.time_ns()}>>>')
         elapsed_time_per_iteration = elapsed_time / total_iterations
         seq_len = args.seq_length
         if hasattr(args, 'actual_seq_length'):
@@ -1147,6 +1148,7 @@ def train(forward_step_func, model, optimizer, opt_param_scheduler,
 
     timers('interval-time', log_level=0).start(barrier=True)
     print_datetime('before the start of training step')
+    print_rank_0(f'<<<iter_marker:{time.time_ns()}>>>')
     report_memory_flag = True
     if args.random_ltd:
         assert model[0].random_ltd_enabled()
