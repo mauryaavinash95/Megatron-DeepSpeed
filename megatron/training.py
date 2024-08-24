@@ -681,7 +681,6 @@ def train_step(forward_step_func, data_iterator,
     timers = get_timers()
     print_rank_0(f"In train_step in training.py!!!!!... {args.deepspeed}, {args.ds_pipeline_enabled}")
     if args.deepspeed and args.ds_pipeline_enabled:
-        skipped_iter = 0
         num_zeros_in_grad = 0
         assert isinstance(model[0], deepspeed.PipelineEngine)
         loss = model[0].train_batch(data_iter=data_iterator)
@@ -691,6 +690,8 @@ def train_step(forward_step_func, data_iterator,
         if additional_losses is not None:
             loss_dict.update(additional_losses)
         grad_norm = model[0].get_global_grad_norm()
+        update_successful = model[0].was_step_applied()
+        skipped_iter = 0 if update_successful else 1
         return loss_dict, skipped_iter, grad_norm, num_zeros_in_grad
 
     # Set grad to zero.
@@ -774,7 +775,7 @@ def train_step(forward_step_func, data_iterator,
 
     # Update learning rate.
     if args.deepspeed:
-        skipped_iter = 0
+        skipped_iter = 0 if update_successful else 1
         grad_norm = None
         num_zeros_in_grad = None
         
